@@ -1,7 +1,7 @@
 from .extensions import db
 
 class User(db.Model):
-    __tablename__ = 'users'  # <- important
+    __tablename__ = 'users'  
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     hashed_password = db.Column(db.String(128), nullable=False)
@@ -15,6 +15,7 @@ class Event(db.Model):
     description = db.Column(db.Text, nullable=False)
     date = db.Column(db.String(20), nullable=False)
     location = db.Column(db.String(100))
+    image_url = db.Column(db.String(255))
     created_by = db.Column(db.Integer)
     comments = db.relationship('Comment', backref='event', lazy=True)
 
