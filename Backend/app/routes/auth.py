@@ -8,7 +8,7 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'GET':
-        return jsonify({"info": "ITS WORKING XD."})
+        return jsonify({"info": "get function is working."})
     
     data = request.get_json()
     
