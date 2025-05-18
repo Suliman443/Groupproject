@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Tourism Event Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=3.0" />
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Poppins", sans-serif;
+      background-color: #000;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .navbar {
+      background-color: #000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #444;
+    }
+
+    .navbar .logo {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+      text-decoration: underline;
+    }
+
+    .navbar ul {
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .navbar ul li a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease, border-bottom 0.3s ease;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 2px;
+      cursor: pointer;
+    }
+
+    .navbar ul li a:hover {
+      color: #ccc;
+      border-bottom: 2px solid #ccc;
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      cursor: pointer;
+    }
+
+    .hamburger span {
+      height: 3px;
+      width: 25px;
+      background: white;
+      margin: 4px 0;
+      border-radius: 2px;
+    }
+
+    @media (max-width: 768px) {
+      .navbar ul {
+        position: absolute;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        flex-direction: column;
+        background-color: #111;
+        display: none;
+      }
+
+      .navbar ul.show {
+        display: flex;
+      }
+
+      .hamburger {
+        display: flex;
+      }
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .login-box {
+      background-color: #111;
+      padding: 3rem 3.5rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      max-width: 500px;
+      width: 100%;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      color: #fff;
+    }
+
+    .login-box:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+    }
+
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #fff;
+    }
+
+    .login-box label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #ddd;
+    }
+
+    .login-box input[type="text"],
+    .login-box input[type="password"] {
+      width: 100%;
+      padding: 0.7rem;
+      margin-bottom: 1rem;
+      border: none;
+      border-radius: 6px;
+      background-color: #222;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 0.8rem;
+      background-color: #fff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .login-box button:hover {
+      background-color: #ccc;
+    }
+
+    .map-container {
+      width: 100%;
+      max-width: 800px;
+      height: 500px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+
+    #leaflet-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .button-container {
+      margin-top: 2rem;
+      display: flex;
+      gap: 1rem;
+    }
+
+    .button-container button {
+      background: #fff;
+      color: #000;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo" onclick="showSection('home')">Smart Tourism Event Management</div>
+    <div class="hamburger" onclick="toggleMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <ul id="nav-links">
+      <li><a onclick="showSection('home')">Home</a></li>
+      <li><a onclick="showSection('login')">Login</a></li>
+      <li><a onclick="showSection('register')">Register</a></li>
+      <li><a onclick="showSection('map')">Map</a></li>
+    </ul>
+  </nav>
+
+  <div class="content" id="home-section" style="display: flex;">
+    <h1>Smart Tourism Event Management</h1>
+    <div class="button-container">
+      <button id="bookmarkBtn" onclick="toggleBookmark()">🔖 Bookmark</button>
+      <button id="likeBtn" onclick="toggleLike()">❤️ Like</button>
+    </div>
+  </div>
+
+  <div class="content" id="login-section" style="display: none;">
+    <div class="login-box">
+      <h2>Login</h2>
+      <form>
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="username" required />
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="password" required />
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="content" id="register-section" style="display: none;">
+    <div class="login-box">
+      <h2>Register A New Account</h2>
+      <form>
+        <label for="fullname">Full Name</label>
+        <input type="text" id="fullname" placeholder="Full Name" required />
+        <label for="email">Email</label>
+        <input type="text" id="email" placeholder="Email" required />
+        <label for="reg-username">Username</label>
+        <input type="text" id="reg-username" placeholder="Username" required />
+        <label for="reg-password">Password</label>
+        <input type="password" id="reg-password" placeholder="Password" required />
+        <label for="confirm-password">Confirm Password</label>
+        <input type="password" id="confirm-password" placeholder="Confirm Password" required />
+        <button type="submit">Register</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Leaflet map section -->
+  <div class="content" id="map-section" style="display: none;">
+    <div class="map-container">
+      <div id="leaflet-map"></div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script>
+    function toggleMenu() {
+      const navLinks = document.getElementById("nav-links");
+      navLinks.classList.toggle("show");
+    }
+
+    let mapInitialized = false;
+
+    function initMap() {
+      const map = L.map('leaflet-map').setView([24.7136, 46.6753], 12);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors & CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      const events = [
+        { name: "Winter Wonderland", lat: 24.7128, lng: 46.6407 },
+        { name: "Boulevard Riyadh City", lat: 24.7742, lng: 46.6500 },
+        { name: "Riyadh Zoo", lat: 24.7012, lng: 46.7316 },
+        { name: "Riyadh Front", lat: 24.8240, lng: 46.7280 },
+        { name: "Sky Riyadh", lat: 24.7368, lng: 46.6701 }
+      ];
+
+      events.forEach(event => {
+        L.marker([event.lat, event.lng]).addTo(map).bindPopup(`<b>${event.name}</b>`);
+      });
+    }
+
+    function showSection(section) {
+      document.getElementById("home-section").style.display = "none";
+      document.getElementById("login-section").style.display = "none";
+      document.getElementById("register-section").style.display = "none";
+      document.getElementById("map-section").style.display = "none";
+
+      if (section === "home") {
+        document.getElementById("home-section").style.display = "flex";
+      } else if (section === "login") {
+        document.getElementById("login-section").style.display = "flex";
+      } else if (section === "register") {
+        document.getElementById("register-section").style.display = "flex";
+      } else if (section === "map") {
+        document.getElementById("map-section").style.display = "flex";
+        if (!mapInitialized) {
+          initMap();
+          mapInitialized = true;
+        }
+      }
+    }
+
+    let isBookmarked = false;
+    let isLiked = false;
+
+    function toggleBookmark() {
+      const btn = document.getElementById("bookmarkBtn");
+      isBookmarked = !isBookmarked;
+      btn.innerText = isBookmarked ? "✅ Bookmarked" : "🔖 Bookmark";
+      btn.style.backgroundColor = isBookmarked ? "#ffc107" : "#fff";
+    }
+
+    function toggleLike() {
+      const btn = document.getElementById("likeBtn");
+      isLiked = !isLiked;
+      btn.innerText = isLiked ? "💖 Liked" : "❤️ Like";
+      btn.style.backgroundColor = isLiked ? "#ff4d6d" : "#fff";
+    }
+  </script>
+</body>
+</html>
