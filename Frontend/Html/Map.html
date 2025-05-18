@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Riyadh Season Festival Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize the map centered on Riyadh
+    const map = L.map('map').setView([24.7136, 46.6753], 12);
+
+    // Add the OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Riyadh Season festival events
+    const events = [
+      { name: "Winter Wonderland", lat: 24.7128, lng: 46.6407 },
+      { name: "Boulevard Riyadh City", lat: 24.7742, lng: 46.6500 },
+      { name: "Riyadh Zoo", lat: 24.7012, lng: 46.7316 },
+      { name: "Riyadh Front", lat: 24.8240, lng: 46.7280 },
+      { name: "Sky Riyadh", lat: 24.7368, lng: 46.6701 }
+    ];
+
+    // Add markers to the map
+    events.forEach(event => {
+      L.marker([event.lat, event.lng])
+        .addTo(map)
+        .bindPopup(`<b>${event.name}</b>`);
+    });
+  </script>
+</body>
+</html>
