@@ -1,20 +1,19 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from app.extensions import db
 from datetime import datetime
-from .base import Base
-from .user import User
 
-class Event(Base):
+class Event(db.Model):
     __tablename__ = "events"
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    description = Column(String)
-    location = Column(String, nullable=False)
-    date = Column(DateTime, nullable=False)
-    time = Column(String, nullable=False)
-    #organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    organizer = relationship("User", back_populates="events")
+    id = db.Column(db.Integer, primary_key=True, index=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    location = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    image_url = db.Column(db.String(255))
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    comments = db.relationship('Comment', backref='event', lazy=True)
+    creator = db.relationship('User', backref='events', lazy=True)

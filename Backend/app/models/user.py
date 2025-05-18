@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import relationship
-from .base import Base
+from app.extensions import db
 
-class User(Base):
+class User(db.Model):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-
-    events = relationship("Event", back_populates="organizer")
+    id = db.Column(db.Integer, primary_key=True, index=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    hashed_password = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(20), default='user')
+    
+    # Relationships can be added here later
