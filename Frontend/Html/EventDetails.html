@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Tourism Event Management</title>
+  <style>
+    :root {
+      --bg-dark: #000;
+      --bg-card: #111;
+      --fg: #fff;
+      --btn-bg: #fff;
+      --btn-fg: #000;
+    }
+    body.light {
+      --bg-dark: #f0f2f6;
+      --bg-card: #fff;
+      --fg: #111;
+      --btn-bg: #111;
+      --btn-fg: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-dark);
+      color: var(--fg);
+      font-family: sans-serif;
+    }
+    /* Navbar */
+    .navbar {
+      position: fixed; top: 0; width: 100%;
+      display: flex; align-items: center; padding: .5rem 1rem;
+      background: var(--bg-dark); z-index: 10;
+    }
+    .navbar .logo {
+      font-weight: bold; color: var(--fg); text-decoration: none;
+      font-size: 1.2rem;
+    }
+    .navbar .nav-links a {
+      margin-left: 1rem; color: var(--fg);
+      text-decoration: none; font-weight: 500;
+    }
+    .navbar .toggle-btn {
+      margin-left: auto; margin-right: 2rem;
+      padding: .4rem .8rem; background: var(--btn-bg);
+      color: var(--btn-fg); border: none; border-radius: 4px;
+      cursor: pointer; font-size: .9rem;
+    }
+    /* Hero */
+    .hero {
+      padding: 6rem 1rem 2rem; text-align: center;
+    }
+    .hero h1 {
+      font-size: 2rem; margin-bottom: 1rem;
+    }
+    .hero .actions button {
+      margin: 0 .5rem; padding: .6rem 1.2rem;
+      border: none; border-radius: 6px;
+      background: var(--btn-bg); color: var(--btn-fg);
+      cursor: pointer;
+    }
+    /* Events Grid */
+    .events {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+      gap: 1.5rem;
+      padding: 2rem 1rem; max-width: 1200px; margin: 0 auto 2rem;
+    }
+    .card {
+      background: var(--bg-card); border-radius: 10px;
+      padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+    .card img {
+      width: 100%; max-height: 200px; object-fit: cover;
+      border-radius: 8px; margin-bottom: 1rem;
+    }
+    .card h2 {
+      font-size: 1.4rem; margin-bottom: .5rem;
+      color: var(--fg);
+    }
+    .card .date {
+      font-size: .9rem; color: #bbb; margin-bottom: 1rem;
+    }
+    .card p {
+      font-size: 1rem; line-height: 1.5; margin-bottom: 1rem;
+    }
+    .card .btns button {
+      margin: 0 .3rem; padding: .5rem 1rem;
+      border: none; border-radius: 6px; cursor: pointer;
+      background: var(--btn-bg); color: var(--btn-fg);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="#" class="logo">Smart Tourism Event Management</a>
+    <button class="toggle-btn" onclick="toggleTheme()">Light Mode 🌙</button>
+    <div class="nav-links">
+      <a href="#">Home</a>
+      <a href="#">Login</a>
+      <a href="#">Register</a>
+      <a href="#">Map</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <h1>Smart Tourism Event Management</h1>
+    <div class="actions">
+      <button>🔖 Bookmark</button>
+      <button>❤️ Like</button>
+    </div>
+  </section>
+
+  <section class="events">
+    <!-- Event 1 -->
+    <div class="card">
+      <img src="images/musicfest.jpg" alt="Riyadh Season Music Fest">
+      <h2>Riyadh Season Music Fest</h2>
+      <div class="date">15 March 2025</div>
+      <p>Enjoy a spectacular concert night featuring the legendary Mohammed Abdu under dazzling lights.</p>
+      <div class="btns">
+        <button>🔖 Bookmark</button>
+        <button>❤️ Like</button>
+      </div>
+    </div>
+
+    <!-- Event 2 -->
+    <div class="card">
+      <img src="images/heritageexpo.jpg" alt="Cultural Heritage Expo">
+      <h2>Cultural Heritage Expo</h2>
+      <div class="date">1 April 2025</div>
+      <p>Discover Saudi Arabia’s rich heritage through traditional architecture and living-history exhibits.</p>
+      <div class="btns">
+        <button>🔖 Bookmark</button>
+        <button>❤️ Like</button>
+      </div>
+    </div>
+
+    <!-- Event 3 -->
+    <div class="card">
+      <img src="images/foodcarnival.jpg" alt="Riyadh Food Carnival">
+      <h2>Riyadh Food Carnival</h2>
+      <div class="date">20 May 2025</div>
+      <p>Taste iconic Saudi dishes—from savory kabsa to sweet dates—at this grand culinary festival.</p>
+      <div class="btns">
+        <button>🔖 Bookmark</button>
+        <button>❤️ Like</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function toggleTheme() {
+      document.body.classList.toggle('light');
+      const btn = document.querySelector('.toggle-btn');
+      btn.textContent = document.body.classList.contains('light')
+        ? 'Dark Mode ☀️'
+        : 'Light Mode 🌙';
+    }
+  </script>
+</body>
+</html>
