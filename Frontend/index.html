@@ -16,6 +16,7 @@
                 <li><a href="#events">Events</a></li>
                 <li><a href="#about">About</a></li>
                 <li><a href="#contact">Contact</a></li>
+                <li><a href="#" id="loginBtn">Login</a></li>
             </ul>
         </nav>
     </header>
@@ -25,6 +26,25 @@
             <h1>Welcome to Section 171 Event Management</h1>
             <p>Discover and manage amazing events</p>
         </section>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit">Login</button>
+                </form>
+            </div>
+        </div>
 
         <section id="events" class="events-section">
             <h2>Upcoming Events</h2>
@@ -38,6 +58,7 @@
         <p>&copy; 2024 Section 171 Event Management. All rights reserved.</p>
     </footer>
 
+    <script src="js/api.js"></script>
     <script src="js/main.js"></script>
     <script src="js/events.js"></script>
 </body>
