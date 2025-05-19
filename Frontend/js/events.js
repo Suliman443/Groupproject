@@ -1,63 +1,58 @@
-// Sample events data (this would typically come from an API)
-const events = [
-    {
-        id: 1,
-        title: 'Summer Music Festival',
-        date: '2024-07-15',
-        description: 'Join us for an amazing day of live music and entertainment.',
-        image: 'images/event1.jpg'
-    },
-    {
-        id: 2,
-        title: 'Tech Conference 2024',
-        date: '2024-08-20',
-        description: 'Learn about the latest technologies and network with professionals.',
-        image: 'images/event2.jpg'
-    },
-    {
-        id: 3,
-        title: 'Food & Wine Expo',
-        date: '2024-09-10',
-        description: 'Experience the finest cuisines and wines from around the world.',
-        image: 'images/event3.jpg'
-    }
-];
+// API Configuration
+const API_BASE_URL = 'http://localhost:5000/api';
 
-// Function to create event card HTML
+// Event Card Template
 function createEventCard(event) {
     return `
-        <div class="event-card" data-event-id="${event.id}">
-            <div class="event-image">
-                <img src="${event.image}" alt="${event.title}">
-            </div>
-            <div class="event-details">
-                <h3>${event.title}</h3>
-                <p class="event-date">${new Date(event.date).toLocaleDateString()}</p>
-                <p class="event-description">${event.description}</p>
-                <button class="btn-details" onclick="showEventDetails(${event.id})">Learn More</button>
+        <div class="event-card">
+            <img src="${event.image_url || 'images/default-event.jpg'}" alt="${event.title}">
+            <h3>${event.title}</h3>
+            <div class="date">${new Date(event.date).toLocaleDateString()}</div>
+            <div class="description">${event.description || ''}</div>
+            <div class="event-actions">
+                <button onclick="handleBookmark(${event.id})">🔖 Bookmark</button>
+                <button onclick="handleLike(${event.id})">❤️ Like</button>
             </div>
         </div>
     `;
 }
 
-// Function to display events
-function displayEvents() {
-    const eventsContainer = document.getElementById('events-container');
-    if (eventsContainer) {
-        eventsContainer.innerHTML = events.map(event => createEventCard(event)).join('');
+// Load Events
+async function loadEvents() {
+    const eventsContainer = document.getElementById('events-list');
+    if (!eventsContainer) return;
+    eventsContainer.innerHTML = '<div class="loading">Loading events...</div>';
+    try {
+        const response = await fetch(`${API_BASE_URL}/events`);
+        if (!response.ok) throw new Error('Failed to fetch events');
+        const events = await response.json();
+        if (events.length === 0) {
+            eventsContainer.innerHTML = '<div class="loading">No events found.</div>';
+        } else {
+            eventsContainer.innerHTML = events.map(event => createEventCard(event)).join('');
+        }
+    } catch (error) {
+        console.error('Error loading events:', error);
+        eventsContainer.innerHTML = `
+            <div class="error-message">
+                Failed to load events. Please try again later.
+            </div>
+        `;
     }
 }
 
-// Function to show event details (can be expanded based on requirements)
-function showEventDetails(eventId) {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-        alert(`Event Details:\n${event.title}\nDate: ${event.date}\n${event.description}`);
-        // This could be replaced with a modal or a more sophisticated UI component
-    }
+// Event Handlers
+function handleBookmark(eventId) {
+    // TODO: Implement bookmark functionality
+    alert('Bookmark clicked for event: ' + eventId);
 }
 
-// Initialize events when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    displayEvents();
+function handleLike(eventId) {
+    // TODO: Implement like functionality
+    alert('Like clicked for event: ' + eventId);
+}
+
+// Initialize
+window.addEventListener('DOMContentLoaded', () => {
+    loadEvents();
 }); 

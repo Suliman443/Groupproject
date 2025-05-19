@@ -5,8 +5,8 @@
   <title>Smart Tourism Event Management</title>
   <style>
     :root {
-      --bg-dark: #000;
-      --bg-card: #111;
+      --bg-dark: #000000;
+      --bg-card: #000000;
       --fg: #fff;
       --btn-bg: #fff;
       --btn-fg: #000;
@@ -65,9 +65,12 @@
       padding: 2rem 1rem; max-width: 1200px; margin: 0 auto 2rem;
     }
     .card {
-      background: var(--bg-card); border-radius: 10px;
-      padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      background: var(--bg-card);
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       text-align: center;
+      border: 1px solid #444;
     }
     .card img {
       width: 100%; max-height: 200px; object-fit: cover;
@@ -88,6 +91,38 @@
       border: none; border-radius: 6px; cursor: pointer;
       background: var(--btn-bg); color: var(--btn-fg);
     }
+    /* Loading and Error States */
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      font-size: 1.2rem;
+      color: var(--fg);
+    }
+    .error {
+      text-align: center;
+      padding: 2rem;
+      color: #ff4444;
+      background: rgba(255, 68, 68, 0.1);
+      border-radius: 8px;
+      margin: 1rem;
+    }
+    .navbar a {
+      position: relative;
+      transition: color 0.3s ease;
+    }
+    .navbar a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 0;
+      background-color: var(--fg);
+      transition: width 0.3s ease;
+    }
+    .navbar a:hover::after {
+      width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -95,10 +130,10 @@
     <a href="#" class="logo">Smart Tourism Event Management</a>
     <button class="toggle-btn" onclick="toggleTheme()">Light Mode 🌙</button>
     <div class="nav-links">
-      <a href="#">Home</a>
-      <a href="#">Login</a>
-      <a href="#">Register</a>
-      <a href="#">Map</a>
+      <a href="index.html">Home</a>
+      <a href="login.html">Login</a>
+      <a href="register.html">Register</a>
+      <a href="map.html">Map</a>
     </div>
   </nav>
 
@@ -111,43 +146,10 @@
   </section>
 
   <section class="events">
-    <!-- Event 1 -->
-    <div class="card">
-      <img src="images/musicfest.jpg" alt="Riyadh Season Music Fest">
-      <h2>Riyadh Season Music Fest</h2>
-      <div class="date">15 March 2025</div>
-      <p>Enjoy a spectacular concert night featuring the legendary Mohammed Abdu under dazzling lights.</p>
-      <div class="btns">
-        <button>🔖 Bookmark</button>
-        <button>❤️ Like</button>
-      </div>
-    </div>
-
-    <!-- Event 2 -->
-    <div class="card">
-      <img src="images/heritageexpo.jpg" alt="Cultural Heritage Expo">
-      <h2>Cultural Heritage Expo</h2>
-      <div class="date">1 April 2025</div>
-      <p>Discover Saudi Arabia’s rich heritage through traditional architecture and living-history exhibits.</p>
-      <div class="btns">
-        <button>🔖 Bookmark</button>
-        <button>❤️ Like</button>
-      </div>
-    </div>
-
-    <!-- Event 3 -->
-    <div class="card">
-      <img src="images/foodcarnival.jpg" alt="Riyadh Food Carnival">
-      <h2>Riyadh Food Carnival</h2>
-      <div class="date">20 May 2025</div>
-      <p>Taste iconic Saudi dishes—from savory kabsa to sweet dates—at this grand culinary festival.</p>
-      <div class="btns">
-        <button>🔖 Bookmark</button>
-        <button>❤️ Like</button>
-      </div>
-    </div>
+    <!-- Events will be loaded dynamically -->
   </section>
 
+  <script src="../js/api.js"></script>
   <script>
     function toggleTheme() {
       document.body.classList.toggle('light');

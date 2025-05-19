@@ -8,6 +8,8 @@ class Event(db.Model):
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     location = db.Column(db.String(100), nullable=False)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
     date = db.Column(db.DateTime, nullable=False)
     image_url = db.Column(db.String(255))
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -15,5 +17,5 @@ class Event(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    comments = db.relationship('Comment', backref='event', lazy=True)
+    comments = db.relationship('Comment', backref='event', lazy=True, cascade='all, delete-orphan')
     creator = db.relationship('User', backref='events', lazy=True)

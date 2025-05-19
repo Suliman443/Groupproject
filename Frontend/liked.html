@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Liked Events</title>
+  <style>
+    body { background: #000; color: #fff; font-family: 'Poppins', sans-serif; margin: 0; }
+    .navbar { background: #111; padding: 1rem 2rem; }
+    .navbar a { color: #fff; text-decoration: none; font-weight: 600; margin-right: 2rem; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 2rem; background: #18181b; border-radius: 12px; }
+    h1 { text-align: center; margin-bottom: 2rem; }
+    .event-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+    .event-card { background: #23232a; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; }
+    .event-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem; }
+    .event-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .event-date { color: #00c3ad; font-size: 0.95rem; margin-bottom: 0.3rem; }
+    .event-desc { color: #ccc; font-size: 0.98rem; margin-bottom: 0.7rem; }
+    .event-book-btn { background: #fff; color: #00c3ad; font-weight: 700; padding: 0.4rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; align-self: flex-end; transition: background 0.2s, color 0.2s; }
+    .event-book-btn:hover { background: #00c3ad; color: #fff; }
+    .empty-msg { text-align: center; color: #bbb; font-size: 1.1rem; margin-top: 2rem; }
+    /* Page Transition */
+    .page-transition {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    .page-transition.active {
+      opacity: 1;
+    }
+    .navbar a {
+      position: relative;
+      transition: color 0.3s ease;
+    }
+    .navbar a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 0;
+      background-color: #00c3ad;
+      transition: width 0.3s ease;
+    }
+    .navbar a:hover::after {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar page-transition">
+    <a href="index.html">Home</a>
+    <a href="bookmarks.html">Bookmarked Events</a>
+    <a href="liked.html">Liked Events</a>
+  </div>
+  <div class="container page-transition">
+    <h1>Liked Events</h1>
+    <div style="text-align:center; margin-bottom:1.5rem;">
+      <button id="selectModeBtn" onclick="toggleSelectMode()" style="background:#00c3ad;color:#fff;padding:0.5rem 1.2rem;border:none;border-radius:6px;font-weight:600;cursor:pointer;margin-right:0.7rem;">Select</button>
+      <button id="removeSelectedBtn" onclick="removeSelected()" style="background:#dc3545;color:#fff;padding:0.5rem 1.2rem;border:none;border-radius:6px;font-weight:600;cursor:pointer;display:none;">Remove Selected</button>
+    </div>
+    <div id="liked-list" class="event-list"></div>
+    <div id="empty-msg" class="empty-msg" style="display:none;">No liked events yet.</div>
+  </div>
+  <script>
+    let selectMode = false;
+    function toggleSelectMode() {
+      selectMode = !selectMode;
+      document.getElementById('removeSelectedBtn').style.display = selectMode ? '' : 'none';
+      renderLikedList();
+    }
+    function renderLikedList() {
+      const list = document.getElementById('liked-list');
+      let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
+      list.innerHTML = liked.map((event, idx) => `
+        <div class="event-card">
+          ${selectMode ? `<input type='checkbox' class='select-checkbox' data-idx='${idx}' style='margin-bottom:0.7rem;transform:scale(1.3);' />` : ''}
+          <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.name}" />
+          <div class="event-title">${event.name}</div>
+          <div class="event-date">${event.date}</div>
+          <div class="event-desc">${event.description}</div>
+          <button class="event-book-btn" onclick="bookNow('${event.name.replace(/'/g, "\\'")}')">Book Now</button>
+        </div>
+      `).join('');
+    }
+    function removeSelected() {
+      let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
+      const checkboxes = document.querySelectorAll('.select-checkbox:checked');
+      const idxs = Array.from(checkboxes).map(cb => parseInt(cb.getAttribute('data-idx'))).sort((a,b)=>b-a);
+      idxs.forEach(idx => liked.splice(idx,1));
+      localStorage.setItem('likedEvents', JSON.stringify(liked));
+      renderLikedList();
+    }
+    function loadLikedEvents() {
+      const list = document.getElementById('liked-list');
+      const emptyMsg = document.getElementById('empty-msg');
+      let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
+      if (!liked.length) {
+        list.style.display = 'none';
+        emptyMsg.style.display = '';
+        return;
+      }
+      list.style.display = 'grid';
+      emptyMsg.style.display = 'none';
+      if (selectMode) {
+        renderLikedList();
+      } else {
+        list.innerHTML = liked.map((event, idx) => `
+          <div class="event-card">
+            <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.name}" />
+            <div class="event-title">${event.name}</div>
+            <div class="event-date">${event.date}</div>
+            <div class="event-desc">${event.description}</div>
+            <button class="event-book-btn" onclick="bookNow('${event.name.replace(/'/g, "\\'")}')">Book Now</button>
+          </div>
+        `).join('');
+      }
+    }
+    function bookNow(eventName) {
+      alert('Booking for: ' + eventName + ' (implement booking logic here)');
+    }
+    function removeLiked(idx) {
+      let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
+      liked.splice(idx, 1);
+      localStorage.setItem('likedEvents', JSON.stringify(liked));
+      if (selectMode) renderLikedList(); else loadLikedEvents();
+    }
+    window.onload = function() {
+      loadLikedEvents();
+      document.getElementById('selectModeBtn').onclick = toggleSelectMode;
+      document.getElementById('removeSelectedBtn').onclick = removeSelected;
+      // Activate page transition
+      document.querySelectorAll('.page-transition').forEach(el => {
+        setTimeout(() => el.classList.add('active'), 50);
+      });
+    };
+    // Handle navigation transitions
+    document.querySelectorAll('.navbar a').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const href = this.getAttribute('href');
+        document.querySelectorAll('.page-transition').forEach(el => {
+          el.classList.remove('active');
+        });
+        setTimeout(() => {
+          window.location.href = href;
+        }, 300);
+      });
+    });
+  </script>
+</body>
+</html> 

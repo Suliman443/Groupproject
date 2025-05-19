@@ -6,10 +6,16 @@ class Comment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, index=True)
     content = db.Column(db.Text, nullable=False)
-    listing_id = db.Column(db.Integer, db.ForeignKey('listings.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'))
+    listing_id = db.Column(db.Integer, db.ForeignKey('listings.id'))
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    author = db.relationship('User', backref='comments', lazy=True) 
+    author = db.relationship('User', backref='comments', lazy=True)
+
+    __table_args__ = (
+        db.CheckConstraint('(event_id IS NOT NULL AND listing_id IS NULL) OR (event_id IS NULL AND listing_id IS NOT NULL)',
+                          name='check_comment_reference'),
+    ) 
