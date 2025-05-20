@@ -106,23 +106,6 @@
       border-radius: 8px;
       margin: 1rem;
     }
-    .navbar a {
-      position: relative;
-      transition: color 0.3s ease;
-    }
-    .navbar a::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 2px;
-      bottom: -4px;
-      left: 0;
-      background-color: var(--fg);
-      transition: width 0.3s ease;
-    }
-    .navbar a:hover::after {
-      width: 100%;
-    }
   </style>
 </head>
 <body>
@@ -130,10 +113,10 @@
     <a href="#" class="logo">Smart Tourism Event Management</a>
     <button class="toggle-btn" onclick="toggleTheme()">Light Mode 🌙</button>
     <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="login.html">Login</a>
-      <a href="register.html">Register</a>
-      <a href="map.html">Map</a>
+      <a href="#">Home</a>
+      <a href="#">Login</a>
+      <a href="#">Register</a>
+      <a href="#">Map</a>
     </div>
   </nav>
 

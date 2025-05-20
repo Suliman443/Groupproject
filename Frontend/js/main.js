@@ -1,10 +1,7 @@
 // DOM Elements
 const navbar = document.querySelector('.navbar');
-const navLinks = document.querySelectorAll('.nav-links a');
-const loginBtn = document.getElementById('loginBtn');
-const loginModal = document.getElementById('loginModal');
-const closeBtn = document.querySelector('.close');
-const loginForm = document.getElementById('loginForm');
+const navLinks = document.querySelectorAll('#nav-links a');
+const hamburger = document.querySelector('.hamburger');
 
 // Add scroll event listener for navbar
 window.addEventListener('scroll', () => {
@@ -15,85 +12,63 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Smooth scroll for navigation links
-navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('href');
-        const targetSection = document.querySelector(targetId);
-        targetSection.scrollIntoView({ behavior: 'smooth' });
+// Function to show/hide sections
+function showSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.content').forEach(section => {
+        section.style.display = 'none';
     });
-});
-
-// Show login modal
-loginBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    loginModal.style.display = 'block';
-});
-
-// Close login modal
-closeBtn.addEventListener('click', () => {
-    loginModal.style.display = 'none';
-});
-
-// Close modal when clicking outside
-window.addEventListener('click', (e) => {
-    if (e.target === loginModal) {
-        loginModal.style.display = 'none';
+    
+    // Show the selected section
+    const selectedSection = document.getElementById(`${sectionId}-section`);
+    if (selectedSection) {
+        selectedSection.style.display = 'flex';
     }
+}
+
+// Toggle mobile menu
+function toggleMenu() {
+    const navLinks = document.getElementById('nav-links');
+    navLinks.classList.toggle('show');
+}
+
+// Add click event listeners to navigation links
+document.querySelectorAll('#nav-links a').forEach(link => {
+    link.addEventListener('click', (e) => {
+        const section = link.textContent.toLowerCase();
+        if (section === 'home' || section === 'login' || section === 'register' || section === 'map' || section === 'events') {
+            e.preventDefault();
+            showSection(section);
+        }
+    });
 });
 
 // Handle login form submission
-loginForm.addEventListener('submit', async (e) => {
+document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    try {
-        const response = await api.login(email, password);
-        
-        if (response.token) {
-            // Store the token
-            localStorage.setItem('token', response.token);
-            
-            // Close the modal
-            loginModal.style.display = 'none';
-            
-            // Update UI to show logged-in state
-            loginBtn.textContent = 'Logout';
-            loginBtn.href = '#';
-            loginBtn.addEventListener('click', handleLogout);
-            
-            // Show success message
-            alert('Login successful!');
-        } else {
-            alert('Login failed. Please check your credentials.');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        alert('An error occurred during login. Please try again.');
-    }
+    showToast('Login functionality will be implemented soon!');
 });
 
-// Handle logout
-function handleLogout(e) {
+// Handle register form submission
+document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    localStorage.removeItem('token');
-    loginBtn.textContent = 'Login';
-    loginBtn.removeEventListener('click', handleLogout);
-    loginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginModal.style.display = 'block';
-    });
+    showToast('Registration functionality will be implemented soon!');
+});
+
+// Toast notification function
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
 }
 
-// Check if user is logged in on page load
+// Initialize website
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        loginBtn.textContent = 'Logout';
-        loginBtn.addEventListener('click', handleLogout);
-    }
+    // Show home section by default
+    showSection('home');
     console.log('Website initialized successfully');
 }); 
