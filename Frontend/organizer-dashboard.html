@@ -218,6 +218,85 @@
             font-size: 1.5rem;
             font-weight: 600;
         }
+        .deleted-events {
+            background: #111;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid #333;
+            display: none;
+        }
+        .show-deleted-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        .show-deleted-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+        .show-deleted-btn.active {
+            background: #00c3ad;
+        }
+        .deleted-events h3 {
+            color: #00c3ad;
+            margin-bottom: 1rem;
+        }
+        .deleted-event {
+            background: #222;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .deleted-event-info {
+            flex: 1;
+        }
+        .deleted-event-info h4 {
+            color: #00c3ad;
+            margin-bottom: 0.3rem;
+        }
+        .deleted-event-info p {
+            color: #ddd;
+            font-size: 0.9rem;
+        }
+        .undo-btn {
+            background: #00c3ad;
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .undo-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+        .clear-all-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+        .clear-all-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -235,6 +314,14 @@
                 <h3>Total Events</h3>
                 <p id="total-events">0</p>
             </div>
+        </div>
+
+        <button id="show-deleted-btn" class="show-deleted-btn" onclick="toggleDeletedEvents()">Show Deleted Events</button>
+
+        <div id="deleted-events-section" class="deleted-events">
+            <h3>Recently Deleted Events</h3>
+            <div id="deleted-events-list"></div>
+            <button class="clear-all-btn" onclick="clearAllDeletedEvents()">Clear All</button>
         </div>
 
         <div class="dashboard-header">
@@ -305,6 +392,7 @@
             document.getElementById('organizer-name').textContent = `Welcome, ${organizer.name}`;
             loadEvents();
             updateStats();
+            showDeletedEvents();
         };
 
         function logout() {
@@ -421,7 +509,12 @@
                 }
             ];
 
-            // Combine both event lists
+            // Store static events in localStorage if not already there
+            if (!localStorage.getItem('staticEvents')) {
+                localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
+            }
+
+            // Get all events
             const allEvents = [...storedEvents, ...staticEvents];
             
             const eventsGrid = document.getElementById('events-grid');
@@ -452,8 +545,10 @@
         }
 
         function editEvent(index) {
-            const events = JSON.parse(localStorage.getItem('events') || '[]');
-            const event = events[index];
+            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
+            const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
+            const allEvents = [...storedEvents, ...staticEvents];
+            const event = allEvents[index];
             
             document.getElementById('modal-title').textContent = 'Edit Event';
             document.getElementById('event-name').value = event.name;
@@ -466,15 +561,109 @@
             
             document.getElementById('event-modal').style.display = 'flex';
             document.getElementById('event-form').dataset.editIndex = index;
+            document.getElementById('event-form').dataset.isStatic = index >= storedEvents.length;
         }
 
         function deleteEvent(index) {
             if (confirm('Are you sure you want to delete this event?')) {
-                const events = JSON.parse(localStorage.getItem('events') || '[]');
-                events.splice(index, 1);
-                localStorage.setItem('events', JSON.stringify(events));
+                const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
+                const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
+                const allEvents = [...storedEvents, ...staticEvents];
+                const eventToDelete = allEvents[index];
+                
+                // Store the deleted event with timestamp
+                const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+                deletedEvents.push({
+                    ...eventToDelete,
+                    deletedAt: new Date().toISOString(),
+                    wasStatic: index >= storedEvents.length,
+                    originalIndex: index
+                });
+                localStorage.setItem('deletedEvents', JSON.stringify(deletedEvents));
+                
+                if (index < storedEvents.length) {
+                    // Delete from stored events
+                    storedEvents.splice(index, 1);
+                    localStorage.setItem('events', JSON.stringify(storedEvents));
+                } else {
+                    // Delete from static events
+                    const staticIndex = index - storedEvents.length;
+                    staticEvents.splice(staticIndex, 1);
+                    localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
+                }
+                
                 loadEvents();
                 updateStats();
+                showDeletedEvents();
+            }
+        }
+
+        function showDeletedEvents() {
+            const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+            const deletedEventsList = document.getElementById('deleted-events-list');
+            const showDeletedBtn = document.getElementById('show-deleted-btn');
+            
+            if (deletedEvents.length > 0) {
+                showDeletedBtn.style.display = 'block';
+                deletedEventsList.innerHTML = deletedEvents.map((event, index) => `
+                    <div class="deleted-event">
+                        <div class="deleted-event-info">
+                            <h4>${event.name}</h4>
+                            <p>Deleted on: ${new Date(event.deletedAt).toLocaleString()}</p>
+                        </div>
+                        <button class="undo-btn" onclick="undoDelete(${index})">Undo</button>
+                    </div>
+                `).join('');
+            } else {
+                showDeletedBtn.style.display = 'none';
+                document.getElementById('deleted-events-section').style.display = 'none';
+            }
+        }
+
+        function undoDelete(index) {
+            const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+            const eventToRestore = deletedEvents[index];
+            
+            if (eventToRestore.wasStatic) {
+                // Restore to static events
+                const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
+                staticEvents.push(eventToRestore);
+                localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
+            } else {
+                // Restore to stored events
+                const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
+                storedEvents.push(eventToRestore);
+                localStorage.setItem('events', JSON.stringify(storedEvents));
+            }
+            
+            // Remove from deleted events
+            deletedEvents.splice(index, 1);
+            localStorage.setItem('deletedEvents', JSON.stringify(deletedEvents));
+            
+            loadEvents();
+            updateStats();
+            showDeletedEvents();
+        }
+
+        function clearAllDeletedEvents() {
+            if (confirm('Are you sure you want to permanently delete all removed events? This action cannot be undone.')) {
+                localStorage.removeItem('deletedEvents');
+                showDeletedEvents();
+            }
+        }
+
+        function toggleDeletedEvents() {
+            const deletedEventsSection = document.getElementById('deleted-events-section');
+            const showDeletedBtn = document.getElementById('show-deleted-btn');
+            
+            if (deletedEventsSection.style.display === 'none') {
+                deletedEventsSection.style.display = 'block';
+                showDeletedBtn.textContent = 'Hide Deleted Events';
+                showDeletedBtn.classList.add('active');
+            } else {
+                deletedEventsSection.style.display = 'none';
+                showDeletedBtn.textContent = 'Show Deleted Events';
+                showDeletedBtn.classList.remove('active');
             }
         }
 
@@ -491,18 +680,28 @@
                 image_url: document.getElementById('event-image').value
             };
 
-            const events = JSON.parse(localStorage.getItem('events') || '[]');
+            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
+            const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
             const editIndex = this.dataset.editIndex;
+            const isStatic = this.dataset.isStatic === 'true';
 
             if (editIndex !== undefined) {
-                // Update existing event
-                events[editIndex] = event;
+                if (isStatic) {
+                    // Update static event
+                    const staticIndex = editIndex - storedEvents.length;
+                    staticEvents[staticIndex] = event;
+                    localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
+                } else {
+                    // Update stored event
+                    storedEvents[editIndex] = event;
+                    localStorage.setItem('events', JSON.stringify(storedEvents));
+                }
             } else {
                 // Add new event
-                events.push(event);
+                storedEvents.push(event);
+                localStorage.setItem('events', JSON.stringify(storedEvents));
             }
 
-            localStorage.setItem('events', JSON.stringify(events));
             closeModal();
             loadEvents();
             updateStats();
