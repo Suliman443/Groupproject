@@ -101,26 +101,75 @@
             gap: 1rem;
         }
         .booking-card {
-            background: #222;
-            padding: 1.5rem;
-            border-radius: 8px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            align-items: center;
+            background: #23232a;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
         .booking-card h3 {
             color: #00c3ad;
-            margin-bottom: 0.5rem;
+            margin: 0 0 0.5rem 0;
         }
         .booking-card p {
+            margin: 0.3rem 0;
             color: #ccc;
+        }
+        .booking-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .edit-btn {
+            background: #00c3ad;
+            color: #fff;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+        .edit-btn:hover {
+            background: #009688;
+        }
+        .cancel-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+        .cancel-btn:hover {
+            background: #c82333;
         }
         .no-bookings {
             text-align: center;
             color: #666;
             padding: 2rem;
+        }
+        .toast {
+            position: fixed;
+            left: 2rem;
+            bottom: 2rem;
+            background: #222;
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+            font-size: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+            transition: opacity 0.4s, transform 0.4s;
+            transform: translateY(30px);
+        }
+        .toast.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
         }
         .footer {
             background: #000;
@@ -201,19 +250,232 @@
         if (bookings.length === 0) {
             bookingsList.innerHTML = '<div class="no-bookings">No bookings found</div>';
         } else {
-            bookingsList.innerHTML = bookings.map(booking => `
-                <div class="booking-card">
-                    <div>
+            bookingsList.innerHTML = bookings.map((booking, index) => {
+                const eventDate = new Date(booking.date);
+                const formattedDate = eventDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                return `
+                    <div class="booking-card">
                         <h3>${booking.eventName}</h3>
-                        <p>Date: ${new Date(booking.date).toLocaleDateString()}</p>
+                        <p>Date: ${formattedDate}</p>
                         <p>Time: ${booking.time}</p>
+                        <p>Quantity: ${booking.quantity}</p>
+                        <div class="booking-actions">
+                            <button class="edit-btn" onclick="editBooking(${index})">Edit Booking</button>
+                            <button class="cancel-btn" onclick="cancelBooking(${index})">Cancel Booking</button>
+                        </div>
                     </div>
-                    <div>
-                        <p>Tickets: ${booking.quantity}</p>
-                        <p>Booked on: ${new Date(booking.bookingDate).toLocaleDateString()}</p>
+                `;
+            }).join('');
+        }
+
+        function loadBookings() {
+            const bookingsList = document.getElementById('bookings-list');
+            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]')
+                .filter(booking => booking.username === currentUser.username);
+
+            if (bookings.length === 0) {
+                bookingsList.innerHTML = '<p>No bookings found.</p>';
+                return;
+            }
+
+            bookingsList.innerHTML = bookings.map((booking, index) => {
+                const eventDate = new Date(booking.date);
+                const formattedDate = eventDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                return `
+                    <div class="booking-card">
+                        <h3>${booking.eventName}</h3>
+                        <p>Date: ${formattedDate}</p>
+                        <p>Time: ${booking.time}</p>
+                        <p>Quantity: ${booking.quantity}</p>
+                        <div class="booking-actions">
+                            <button class="edit-btn" onclick="editBooking(${index})">Edit Booking</button>
+                            <button class="cancel-btn" onclick="cancelBooking(${index})">Cancel Booking</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editBooking(index) {
+            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]')
+                .filter(booking => booking.username === currentUser.username);
+            const booking = bookings[index];
+
+            // Calculate days until event
+            const eventDate = new Date(booking.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day
+            const daysUntilEvent = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+
+            // Calculate available dates (event day and 4 days after)
+            const availableDates = [];
+            const eventDay = new Date(booking.date);
+            for (let i = 0; i <= 4; i++) {
+                const date = new Date(eventDay);
+                date.setDate(eventDay.getDate() + i);
+                availableDates.push(date.toISOString().split('T')[0]);
+            }
+
+            modal.innerHTML = `
+                <div style="background: #111; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;">
+                    <h2 style="color: #fff; margin-bottom: 1rem;">Edit Booking</h2>
+                    <p style="color: #ccc; margin-bottom: 1rem;">Event: ${booking.eventName}</p>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Select Date:</label>
+                        <select id="editDate" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff; ${daysUntilEvent <= 1 ? 'opacity: 0.5;' : ''}" ${daysUntilEvent <= 1 ? 'disabled' : ''}>
+                            ${availableDates.map(date => {
+                                const displayDate = new Date(date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric'
+                                });
+                                return `<option value="${date}" ${date === booking.date ? 'selected' : ''}>${displayDate}</option>`;
+                            }).join('')}
+                        </select>
+                        ${daysUntilEvent <= 1 ? '<p style="color: #dc3545; font-size: 0.9rem; margin-top: 0.3rem;">Date cannot be changed within 24 hours of the event</p>' : ''}
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Select Time:</label>
+                        <select id="editTime" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                            <option value="16:00" ${booking.time === '16:00' ? 'selected' : ''}>4:00 PM</option>
+                            <option value="18:00" ${booking.time === '18:00' ? 'selected' : ''}>6:00 PM</option>
+                            <option value="20:00" ${booking.time === '20:00' ? 'selected' : ''}>8:00 PM</option>
+                            <option value="22:00" ${booking.time === '22:00' ? 'selected' : ''}>10:00 PM</option>
+                            <option value="00:00" ${booking.time === '00:00' ? 'selected' : ''}>12:00 AM</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Number of Tickets:</label>
+                        <input type="number" id="editQuantity" min="1" max="5" value="${booking.quantity}" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button onclick="saveBookingEdit(${index})" style="flex: 1; padding: 0.8rem; background: #00c3ad; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Save Changes</button>
+                        <button onclick="closeEditModal()" style="flex: 1; padding: 0.8rem; background: #333; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
                     </div>
                 </div>
-            `).join('');
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        function closeEditModal() {
+            const modal = document.querySelector('div[style*="position: fixed"]');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function saveBookingEdit(index) {
+            const date = document.getElementById('editDate').value;
+            const time = document.getElementById('editTime').value;
+            const quantity = document.getElementById('editQuantity').value;
+
+            if (!date) {
+                alert('Please select a date');
+                return;
+            }
+
+            const allBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+            const userBookings = allBookings.filter(booking => booking.username === currentUser.username);
+            const bookingToEdit = userBookings[index];
+            
+            // Calculate days until event
+            const eventDate = new Date(bookingToEdit.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const daysUntilEvent = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+
+            // If within 24 hours, keep the original date
+            const finalDate = daysUntilEvent <= 1 ? bookingToEdit.date : date;
+            
+            // Find the original booking in allBookings
+            const originalIndex = allBookings.findIndex(b => 
+                b.eventName === bookingToEdit.eventName && 
+                b.date === bookingToEdit.date && 
+                b.time === bookingToEdit.time && 
+                b.quantity === bookingToEdit.quantity &&
+                b.username === bookingToEdit.username
+            );
+
+            if (originalIndex !== -1) {
+                allBookings[originalIndex] = {
+                    ...bookingToEdit,
+                    date: finalDate,
+                    time: time,
+                    quantity: quantity
+                };
+                
+                localStorage.setItem('bookings', JSON.stringify(allBookings));
+                closeEditModal();
+                loadBookings();
+                alert('Booking updated successfully!');
+            }
+        }
+
+        function showToast(message) {
+            let toast = document.querySelector('.toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function cancelBooking(index) {
+            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]')
+                .filter(booking => booking.username === currentUser.username);
+            const bookingToCancel = bookings[index];
+
+            // Find the original booking in allBookings
+            const allBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+            const originalIndex = allBookings.findIndex(b => 
+                b.eventName === bookingToCancel.eventName && 
+                b.date === bookingToCancel.date && 
+                b.time === bookingToCancel.time && 
+                b.quantity === bookingToCancel.quantity &&
+                b.username === bookingToCancel.username
+            );
+
+            if (originalIndex !== -1) {
+                allBookings.splice(originalIndex, 1);
+                localStorage.setItem('bookings', JSON.stringify(allBookings));
+                loadBookings();
+                showToast(`Booking for "${bookingToCancel.eventName}" has been cancelled`);
+            }
         }
     </script>
 </body>
