@@ -39,10 +39,11 @@ python frontend_server.py
 
 Open your web browser and navigate to:
 
-- Main page: http://localhost:5001/
-- Events page: http://localhost:5001/events
-- Bookmarks page: http://localhost:5001/bookmarks
-- Liked page: http://localhost:5001/liked
+- Main page: http://localhost:4322/
+- Events page: http://localhost:4322/events
+- Bookmarks page: http://localhost:4322/bookmarks
+- Liked page: http://localhost:4322/liked
+- Account page: http://localhost:4322/account
 
 ## Project Structure
 
@@ -54,4 +55,11 @@ Open your web browser and navigate to:
 The frontend server proxies all API requests to the backend server running on port 5000.
 
 - `/api/*`: All API endpoints are forwarded to `http://localhost:5000/api/*`
-- `/auth/*`: All auth endpoints are forwarded to `http://localhost:5000/auth/*` 
+- `/auth/*`: All auth endpoints are forwarded to `http://localhost:5000/auth/*`
+
+## Features
+
+- Serves static HTML, CSS, JS, and image files
+- Proxies API requests to the backend server
+- Supports Cross-Origin Resource Sharing (CORS) for API requests
+- Responsive design for mobile and desktop devices 

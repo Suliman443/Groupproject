@@ -25,6 +25,10 @@ def bookmarks():
 def liked():
     return send_from_directory('Frontend', 'liked.html')
 
+@app.route('/account')
+def account():
+    return send_from_directory('Frontend', 'account.html')
+
 @app.route('/html/<path:filename>')
 def html_files(filename):
     return send_from_directory('Frontend/Html', filename)
@@ -75,6 +79,14 @@ def auth_proxy(path):
                if name.lower() not in excluded_headers]
 
     response = Response(resp.content, resp.status_code, headers)
+    return response
+
+# Add support for CORS (Cross-Origin Resource Sharing)
+@app.after_request
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
 if __name__ == '__main__':
