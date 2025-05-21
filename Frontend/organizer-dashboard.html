@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+        }
+        .navbar {
+            background-color: #000;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+        }
+        .navbar h1 {
+            font-size: 1.5rem;
+            color: #fff;
+        }
+        .navbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .navbar button {
+            background: #00c3ad;
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .dashboard-header h2 {
+            color: #fff;
+        }
+        .add-event-btn {
+            background: #00c3ad;
+            color: #000;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .add-event-btn:hover {
+            background: #00a3ad;
+            transform: translateY(-2px);
+        }
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .event-card {
+            background: #111;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+        }
+        .event-card h3 {
+            margin-bottom: 0.5rem;
+            color: #00c3ad;
+        }
+        .event-card p {
+            color: #ddd;
+            margin-bottom: 0.5rem;
+        }
+        .event-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .event-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .event-actions button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .edit-btn {
+            background: #00c3ad;
+            color: #000;
+        }
+        .delete-btn {
+            background: #dc3545;
+            color: #fff;
+        }
+        .edit-btn:hover, .delete-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #111;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            color: #fff;
+            border: 1px solid #333;
+        }
+        .modal-content h2 {
+            margin-bottom: 1.5rem;
+            color: #00c3ad;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #ddd;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #222;
+            color: #fff;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .modal-actions button {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .save-btn {
+            background: #00c3ad;
+            color: #000;
+        }
+        .cancel-btn {
+            background: #333;
+            color: #fff;
+        }
+        .save-btn:hover, .cancel-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #111;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .stat-card h3 {
+            color: #00c3ad;
+            margin-bottom: 0.5rem;
+        }
+        .stat-card p {
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Organizer Dashboard</h1>
+        <div class="user-info">
+            <span id="organizer-name">Welcome, Organizer</span>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>Total Events</h3>
+                <p id="total-events">0</p>
+            </div>
+        </div>
+
+        <div class="dashboard-header">
+            <h2>Manage Events</h2>
+            <button class="add-event-btn" onclick="showAddEventModal()">Add New Event</button>
+        </div>
+
+        <div class="events-grid" id="events-grid">
+            <!-- Events will be dynamically added here -->
+        </div>
+    </div>
+
+    <!-- Add/Edit Event Modal -->
+    <div class="modal" id="event-modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Add New Event</h2>
+            <form id="event-form">
+                <div class="form-group">
+                    <label for="event-name">Event Name</label>
+                    <input type="text" id="event-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="event-date">Date</label>
+                    <input type="date" id="event-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="event-time">Time</label>
+                    <input type="time" id="event-time" required>
+                </div>
+                <div class="form-group">
+                    <label for="event-location">Location</label>
+                    <input type="text" id="event-location" required>
+                </div>
+                <div class="form-group">
+                    <label for="event-description">Description</label>
+                    <textarea id="event-description" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="event-category">Category</label>
+                    <select id="event-category" required>
+                        <option value="concert">Concert</option>
+                        <option value="sports">Sports</option>
+                        <option value="expo">Expo</option>
+                        <option value="festival">Festival</option>
+                        <option value="conference">Conference</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="event-image">Image URL</label>
+                    <input type="text" id="event-image" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="save-btn">Save Event</button>
+                    <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Check if organizer is logged in
+        window.onload = function() {
+            const organizer = JSON.parse(localStorage.getItem('currentOrganizer'));
+            if (!organizer) {
+                window.location.href = 'organizer-login.html';
+                return;
+            }
+            document.getElementById('organizer-name').textContent = `Welcome, ${organizer.name}`;
+            loadEvents();
+            updateStats();
+        };
+
+        function logout() {
+            localStorage.removeItem('currentOrganizer');
+            window.location.href = 'organizer-login.html';
+        }
+
+        function updateStats() {
+            // Get events from both localStorage and static events
+            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
+            const staticEvents = [
+                {
+                    name: "Guns N' Roses Concert",
+                    date: "2025-05-23",
+                    time: "20:00",
+                    location: "Riyadh",
+                    description: "Guns N' Roses will kick off their 2025 tour in Riyadh.",
+                    category: "concert",
+                    image_url: "images/Guns N' Roses Concert.png"
+                },
+                {
+                    name: "WWE Night of Champions",
+                    date: "2025-06-28",
+                    time: "19:00",
+                    location: "Riyadh",
+                    description: "WWE's Night of Champions event featuring top wrestlers.",
+                    category: "sports",
+                    image_url: "images/WWE Night of Champions.png"
+                },
+                {
+                    name: "Esports World Cup",
+                    date: "2025-07-08",
+                    time: "10:00",
+                    location: "Riyadh",
+                    description: "International esports tournament with 25 events.",
+                    category: "sports",
+                    image_url: "images/Esports World Cup.png"
+                },
+                {
+                    name: "Foodex Saudi 2025",
+                    date: "2025-09-21",
+                    time: "09:00",
+                    location: "Riyadh",
+                    description: "International food and beverage trade exhibition.",
+                    category: "expo",
+                    image_url: "images/Foodex Saudi 2025.jpg"
+                },
+                {
+                    name: "Saudi Agriculture 2025",
+                    date: "2025-10-20",
+                    time: "10:00",
+                    location: "Riyadh",
+                    description: "Exhibition on agriculture, food, and agro-industry.",
+                    category: "expo",
+                    image_url: "images/Saudi Agriculture 2025.jpg"
+                }
+            ];
+
+            // Combine both event lists and get total count
+            const allEvents = [...storedEvents, ...staticEvents];
+            const totalEvents = allEvents.length;
+
+            document.getElementById('total-events').textContent = totalEvents;
+        }
+
+        function loadEvents() {
+            // Get events from both localStorage and static events
+            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
+            const staticEvents = [
+                {
+                    name: "Guns N' Roses Concert",
+                    date: "2025-05-23",
+                    time: "20:00",
+                    location: "Riyadh",
+                    description: "Guns N' Roses will kick off their 2025 tour in Riyadh.",
+                    category: "concert",
+                    image_url: "images/Guns N' Roses Concert.png"
+                },
+                {
+                    name: "WWE Night of Champions",
+                    date: "2025-06-28",
+                    time: "19:00",
+                    location: "Riyadh",
+                    description: "WWE's Night of Champions event featuring top wrestlers.",
+                    category: "sports",
+                    image_url: "images/WWE Night of Champions.png"
+                },
+                {
+                    name: "Esports World Cup",
+                    date: "2025-07-08",
+                    time: "10:00",
+                    location: "Riyadh",
+                    description: "International esports tournament with 25 events.",
+                    category: "sports",
+                    image_url: "images/Esports World Cup.png"
+                },
+                {
+                    name: "Foodex Saudi 2025",
+                    date: "2025-09-21",
+                    time: "09:00",
+                    location: "Riyadh",
+                    description: "International food and beverage trade exhibition.",
+                    category: "expo",
+                    image_url: "images/Foodex Saudi 2025.jpg"
+                },
+                {
+                    name: "Saudi Agriculture 2025",
+                    date: "2025-10-20",
+                    time: "10:00",
+                    location: "Riyadh",
+                    description: "Exhibition on agriculture, food, and agro-industry.",
+                    category: "expo",
+                    image_url: "images/Saudi Agriculture 2025.jpg"
+                }
+            ];
+
+            // Combine both event lists
+            const allEvents = [...storedEvents, ...staticEvents];
+            
+            const eventsGrid = document.getElementById('events-grid');
+            eventsGrid.innerHTML = allEvents.map((event, index) => `
+                <div class="event-card">
+                    <img src="${event.image_url}" alt="${event.name}" class="event-image">
+                    <h3>${event.name}</h3>
+                    <p>Date: ${event.date}</p>
+                    <p>Time: ${event.time}</p>
+                    <p>Location: ${event.location}</p>
+                    <p>Category: ${event.category}</p>
+                    <div class="event-actions">
+                        <button class="edit-btn" onclick="editEvent(${index})">Edit</button>
+                        <button class="delete-btn" onclick="deleteEvent(${index})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddEventModal() {
+            document.getElementById('modal-title').textContent = 'Add New Event';
+            document.getElementById('event-form').reset();
+            document.getElementById('event-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('event-modal').style.display = 'none';
+        }
+
+        function editEvent(index) {
+            const events = JSON.parse(localStorage.getItem('events') || '[]');
+            const event = events[index];
+            
+            document.getElementById('modal-title').textContent = 'Edit Event';
+            document.getElementById('event-name').value = event.name;
+            document.getElementById('event-date').value = event.date;
+            document.getElementById('event-time').value = event.time;
+            document.getElementById('event-location').value = event.location;
+            document.getElementById('event-description').value = event.description;
+            document.getElementById('event-category').value = event.category;
+            document.getElementById('event-image').value = event.image_url;
+            
+            document.getElementById('event-modal').style.display = 'flex';
+            document.getElementById('event-form').dataset.editIndex = index;
+        }
+
+        function deleteEvent(index) {
+            if (confirm('Are you sure you want to delete this event?')) {
+                const events = JSON.parse(localStorage.getItem('events') || '[]');
+                events.splice(index, 1);
+                localStorage.setItem('events', JSON.stringify(events));
+                loadEvents();
+                updateStats();
+            }
+        }
+
+        document.getElementById('event-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const event = {
+                name: document.getElementById('event-name').value,
+                date: document.getElementById('event-date').value,
+                time: document.getElementById('event-time').value,
+                location: document.getElementById('event-location').value,
+                description: document.getElementById('event-description').value,
+                category: document.getElementById('event-category').value,
+                image_url: document.getElementById('event-image').value
+            };
+
+            const events = JSON.parse(localStorage.getItem('events') || '[]');
+            const editIndex = this.dataset.editIndex;
+
+            if (editIndex !== undefined) {
+                // Update existing event
+                events[editIndex] = event;
+            } else {
+                // Add new event
+                events.push(event);
+            }
+
+            localStorage.setItem('events', JSON.stringify(events));
+            closeModal();
+            loadEvents();
+            updateStats();
+        });
+    </script>
+</body>
+</html> 
