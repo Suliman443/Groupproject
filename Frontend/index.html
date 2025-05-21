@@ -148,14 +148,34 @@
             overflow: hidden;
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
             position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin: 1rem auto;
         }
         #leaflet-map {
             width: 100%;
             height: 100%;
-            flex-grow: 1;
+        }
+        .event-popup {
+            background: #111;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 200px;
+        }
+        .event-popup h3 {
+            margin: 0 0 5px 0;
+            color: #00c3ad;
+        }
+        .event-popup p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        .event-popup .event-date {
+            color: #00c3ad;
+            font-weight: 600;
+        }
+        .event-popup .event-location {
+            color: #ccc;
+            font-size: 0.8rem;
         }
         .map-buttons {
             position: absolute;
@@ -445,8 +465,14 @@
             <li><a onclick="showSection('map')">Map</a></li>
             <li><a href="bookmarks.html">Bookmarked Events</a></li>
             <li><a href="liked.html">Liked Events</a></li>
-            </ul>
-        </nav>
+            <li id="account-nav" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span id="welcome-text" style="color: #00c3ad;"></span>
+                    <a href="account.html" style="background: #00c3ad; color: #000; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none;">My Account</a>
+                </div>
+            </li>
+        </ul>
+    </nav>
 
     <div class="content" id="home-section" style="display: flex;">
         <h1>Smart Tourism Event Management</h1>
@@ -456,11 +482,11 @@
             <button id="showAllEventsBtn" onclick="toggleEvents()">Show All Events</button>
             <button id="selectEventToggleBtn" onclick="toggleSelectMode()" style="display:none;">Select Event</button>
         </div>
-        <h2 style="margin-top:2rem;">Upcoming Events</h2>
         <div class="events-container" id="events-container">
-          <div id="events-list"></div>
-                    </div>
-                    </div>
+            <h2 style="margin: 1rem 0; text-align: center; display: none;">Upcoming Events</h2>
+            <div id="events-list"></div>
+        </div>
+    </div>
 
     <div class="content" id="login-section" style="display: none;">
         <div class="login-box">
@@ -773,6 +799,8 @@
             const likeBtn = document.getElementById('likeBtn');
             const selectBtn = document.getElementById('selectEventToggleBtn');
             const allBtns = document.querySelectorAll('.button-container button');
+            const upcomingEventsTitle = eventsContainer.querySelector('h2');
+            
             if (!eventsContainer.classList.contains('open')) {
                 loadHomeEvents();
                 eventsContainer.classList.add('open');
@@ -781,6 +809,9 @@
                 bookmarkBtn.style.display = '';
                 likeBtn.style.display = '';
                 selectBtn.style.display = '';
+                if (upcomingEventsTitle) {
+                    upcomingEventsTitle.style.display = 'block';
+                }
                 setTimeout(() => {
                     document.querySelectorAll('.event-card').forEach((card, i) => {
                         card.classList.remove('animated');
@@ -794,6 +825,9 @@
                 bookmarkBtn.style.display = 'none';
                 likeBtn.style.display = 'none';
                 selectBtn.style.display = 'none';
+                if (upcomingEventsTitle) {
+                    upcomingEventsTitle.style.display = 'none';
+                }
                 selectMode = false;
             }
             updateSelectButtons();
@@ -839,8 +873,176 @@
         }
         function bookEvent(eventIdx) {
             const event = staticEvents[eventIdx];
-            alert('Booking for: ' + event.name + ' (implement booking logic here)');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                showToast('Please login or register to book tickets');
+                showSection('login');
+                return;
+            }
+
+            // Parse the event date and create date options
+            const eventDate = new Date(event.date.split(' to ')[0]); // Get start date
+            const dateOptions = [];
+            
+            // Add event date and two days after
+            for (let i = 0; i < 3; i++) {
+                const date = new Date(eventDate);
+                date.setDate(eventDate.getDate() + i);
+                dateOptions.push({
+                    value: date.toISOString().split('T')[0],
+                    label: date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })
+                });
+            }
+
+            // Create booking modal
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: #111; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;">
+                    <h2 style="color: #fff; margin-bottom: 1rem;">Book Tickets for ${event.name}</h2>
+                    <p style="color: #ccc; margin-bottom: 1rem;">Welcome, ${currentUser.username}!</p>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Select Date:</label>
+                        <select id="ticketDate" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                            ${dateOptions.map(option => 
+                                `<option value="${option.value}">${option.label}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Select Time:</label>
+                        <select id="ticketTime" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                            <option value="16:00">4:00 PM</option>
+                            <option value="18:00">6:00 PM</option>
+                            <option value="20:00">8:00 PM</option>
+                            <option value="22:00">10:00 PM</option>
+                            <option value="00:00">12:00 AM</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Number of Tickets:</label>
+                        <input type="number" id="ticketQuantity" min="1" max="5" value="1" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button onclick="confirmBooking(${eventIdx})" style="flex: 1; padding: 0.8rem; background: #00c3ad; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Confirm Booking</button>
+                        <button onclick="closeBookingModal()" style="flex: 1; padding: 0.8rem; background: #333; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
         }
+
+        function closeBookingModal() {
+            const modal = document.querySelector('div[style*="position: fixed"]');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function confirmBooking(eventIdx) {
+            const event = staticEvents[eventIdx];
+            const date = document.getElementById('ticketDate').value;
+            const time = document.getElementById('ticketTime').value;
+            const quantity = document.getElementById('ticketQuantity').value;
+            
+            if (!date) {
+                showToast('Please select a date');
+                return;
+            }
+
+            // Save booking to localStorage
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+            
+            const booking = {
+                eventName: event.name,
+                date: date,
+                time: time,
+                quantity: quantity,
+                username: currentUser.username,
+                bookingDate: new Date().toISOString()
+            };
+            
+            bookings.push(booking);
+            localStorage.setItem('bookings', JSON.stringify(bookings));
+            
+            closeBookingModal();
+            showToast('Booking confirmed successfully!');
+        }
+
+        // Add login form submission handler
+        document.querySelector('#login-section form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                showToast('Welcome back, ' + username + '!');
+                updateNavbar();
+                showSection('home');
+            } else {
+                showToast('Invalid username or password');
+            }
+        });
+
+        // Add registration form submission handler
+        document.querySelector('#register-section form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fullname = document.getElementById('fullname').value;
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                showToast('Passwords do not match');
+                return;
+            }
+            
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            
+            if (users.some(u => u.username === username)) {
+                showToast('Username already exists');
+                return;
+            }
+            
+            const newUser = { fullname, email, username, password };
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
+            
+            showToast('Registration successful! Welcome, ' + username);
+            updateNavbar();
+            showSection('home');
+        });
+
         function selectEvent(eventIdx) {
             const eventCard = document.querySelectorAll('.event-card')[eventIdx];
             eventCard.classList.toggle('selected');
@@ -855,6 +1057,7 @@
         }
         // Also load on first page load if home is shown
         window.addEventListener('DOMContentLoaded', () => {
+            updateNavbar();
             if(document.getElementById('home-section').style.display !== 'none') loadHomeEvents();
         });
         function updateMapWithEvents() {
@@ -870,6 +1073,24 @@
                     window.eventMarkers.push(marker);
                 }
             });
+        }
+        function updateNavbar() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const accountNav = document.getElementById('account-nav');
+            const welcomeText = document.getElementById('welcome-text');
+            const loginLink = document.querySelector('a[onclick="showSection(\'login\')"]').parentElement;
+            const registerLink = document.querySelector('a[onclick="showSection(\'register\')"]').parentElement;
+
+            if (currentUser) {
+                welcomeText.textContent = `Welcome, ${currentUser.username}`;
+                accountNav.style.display = 'block';
+                loginLink.style.display = 'none';
+                registerLink.style.display = 'none';
+            } else {
+                accountNav.style.display = 'none';
+                loginLink.style.display = 'block';
+                registerLink.style.display = 'block';
+            }
         }
     </script>
 </body>

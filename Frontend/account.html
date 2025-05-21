@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Account - Smart Tourism Event Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+        }
+        .navbar {
+            background-color: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #444;
+        }
+        .navbar .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .navbar ul {
+            list-style: none;
+            display: flex;
+            gap: 1.5rem;
+        }
+        .navbar ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .navbar ul li a:hover {
+            color: #00c3ad;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .account-section {
+            background: #111;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .account-section h2 {
+            color: #00c3ad;
+            margin-bottom: 1.5rem;
+        }
+        .logout-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        .user-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .info-item {
+            background: #222;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .info-item label {
+            color: #00c3ad;
+            font-size: 0.9rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .info-item span {
+            color: #fff;
+            font-size: 1.1rem;
+        }
+        .bookings-list {
+            display: grid;
+            gap: 1rem;
+        }
+        .booking-card {
+            background: #222;
+            padding: 1.5rem;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: center;
+        }
+        .booking-card h3 {
+            color: #00c3ad;
+            margin-bottom: 0.5rem;
+        }
+        .booking-card p {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        .no-bookings {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
+        .footer {
+            background: #000;
+            color: #fff;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Smart Tourism Event Management</a>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="bookmarks.html">Bookmarked Events</a></li>
+            <li><a href="liked.html">Liked Events</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="account-section">
+            <h2>Account Information</h2>
+            <div class="user-info" id="user-info">
+                <!-- User info will be populated by JavaScript -->
+            </div>
+            <button onclick="logout()" class="logout-btn">Logout</button>
+        </div>
+
+        <div class="account-section">
+            <h2>My Bookings</h2>
+            <div class="bookings-list" id="bookings-list">
+                <!-- Bookings will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Smart Tourism Event Management. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Check if user is logged in
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        }
+
+        function logout() {
+            // Remove current user from localStorage
+            localStorage.removeItem('currentUser');
+            // Redirect to home page
+            window.location.href = 'index.html';
+        }
+
+        // Display user information
+        const userInfo = document.getElementById('user-info');
+        userInfo.innerHTML = `
+            <div class="info-item">
+                <label>Full Name</label>
+                <span>${currentUser.fullname}</span>
+            </div>
+            <div class="info-item">
+                <label>Username</label>
+                <span>${currentUser.username}</span>
+            </div>
+            <div class="info-item">
+                <label>Email</label>
+                <span>${currentUser.email}</span>
+            </div>
+        `;
+
+        // Display bookings
+        const bookingsList = document.getElementById('bookings-list');
+        const bookings = JSON.parse(localStorage.getItem('bookings') || '[]')
+            .filter(booking => booking.username === currentUser.username);
+
+        if (bookings.length === 0) {
+            bookingsList.innerHTML = '<div class="no-bookings">No bookings found</div>';
+        } else {
+            bookingsList.innerHTML = bookings.map(booking => `
+                <div class="booking-card">
+                    <div>
+                        <h3>${booking.eventName}</h3>
+                        <p>Date: ${new Date(booking.date).toLocaleDateString()}</p>
+                        <p>Time: ${booking.time}</p>
+                    </div>
+                    <div>
+                        <p>Tickets: ${booking.quantity}</p>
+                        <p>Booked on: ${new Date(booking.bookingDate).toLocaleDateString()}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html> 

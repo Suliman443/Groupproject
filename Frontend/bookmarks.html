@@ -46,8 +46,8 @@
   </style>
 </head>
 <body>
-  <div class="navbar page-transition">
-    <a href="index.html">Home</a>
+  <div class="navbar">
+    <a href="index.html" style="text-decoration: none;">Home</a>
     <a href="bookmarks.html">Bookmarked Events</a>
   </div>
   <div class="container page-transition">
@@ -126,24 +126,9 @@
       loadBookmarkedEvents();
       document.getElementById('selectModeBtn').onclick = toggleSelectMode;
       document.getElementById('removeSelectedBtn').onclick = removeSelected;
-      // Activate page transition
-      document.querySelectorAll('.page-transition').forEach(el => {
-        setTimeout(() => el.classList.add('active'), 50);
-      });
+      // Activate page transition only for container
+      document.querySelector('.container.page-transition').classList.add('active');
     };
-    // Handle navigation transitions
-    document.querySelectorAll('.navbar a').forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const href = this.getAttribute('href');
-        document.querySelectorAll('.page-transition').forEach(el => {
-          el.classList.remove('active');
-        });
-        setTimeout(() => {
-          window.location.href = href;
-        }, 300);
-      });
-    });
   </script>
 </body>
 </html> 
