@@ -47,7 +47,7 @@
 </head>
 <body>
   <div class="navbar">
-    <a href="index.html" style="text-decoration: none;">Home</a>
+    <a href="index.html?section=home" style="text-decoration: none;">Home</a>
     <a href="bookmarks.html">Bookmarked Events</a>
   </div>
   <div class="container page-transition">
@@ -58,6 +58,9 @@
     </div>
     <div id="bookmarked-list" class="event-list"></div>
     <div id="empty-msg" class="empty-msg" style="display:none;">No bookmarked events yet.</div>
+    <div class="button-container">
+      <button onclick="window.location.href='index.html'">Home</button>
+    </div>
   </div>
   <script>
     let selectMode = false;

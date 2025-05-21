@@ -659,8 +659,15 @@
 
         // On page load, show saved section or default to home
         window.onload = () => {
-            const savedSection = localStorage.getItem("currentSection") || "home";
-            showSection(savedSection);
+            const urlParams = new URLSearchParams(window.location.search);
+            const sectionParam = urlParams.get('section');
+            
+            if (sectionParam === 'home') {
+                showSection('home');
+            } else {
+                const savedSection = localStorage.getItem("currentSection") || "home";
+                showSection(savedSection);
+            }
         };
 
         let isBookmarked = false;
