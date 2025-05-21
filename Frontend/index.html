@@ -448,6 +448,44 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.18);
             transform: scale(1.07);
         }
+        .event-bookmark-btn {
+            background: #fff;
+            color: #00c3ad;
+            font-weight: 700;
+            padding: 0.3rem 0.7rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        .event-bookmark-btn:hover {
+            background: #00c3ad;
+            color: #fff;
+        }
+        .event-bookmark-btn.bookmarked {
+            background: #00c3ad;
+            color: #fff;
+        }
+        .event-like-btn {
+            background: #fff;
+            color: #dc3545;
+            font-weight: 700;
+            padding: 0.3rem 0.7rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        .event-like-btn:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+        .event-like-btn.liked {
+            background: #dc3545;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -477,10 +515,7 @@
     <div class="content" id="home-section" style="display: flex;">
         <h1>Smart Tourism Event Management</h1>
         <div class="button-container">
-            <button id="bookmarkBtn" onclick="toggleBookmark()" style="display:none;">🔖 Bookmark</button>
-            <button id="likeBtn" onclick="toggleLike()" style="display:none;">❤️ Like</button>
             <button id="showAllEventsBtn" onclick="toggleEvents()">Show All Events</button>
-            <button id="selectEventToggleBtn" onclick="toggleSelectMode()" style="display:none;">Select Event</button>
         </div>
         <div class="events-container" id="events-container">
             <h2 style="margin: 1rem 0; text-align: center; display: none;">Upcoming Events</h2>
@@ -631,34 +666,38 @@
         let isBookmarked = false;
         let isLiked = false;
 
-        function toggleBookmark() {
-            const btn = document.getElementById("bookmarkBtn");
-            if (selectMode) {
-                // Save all selected events to localStorage
-                const selectedIdxs = Array.from(document.querySelectorAll('.event-card.selected')).map(card => Array.from(document.querySelectorAll('.event-card')).indexOf(card));
-                const selectedEvents = selectedIdxs.map(idx => staticEvents[idx]);
-                let bookmarked = JSON.parse(localStorage.getItem('bookmarkedEvents') || '[]');
-                // Avoid duplicates
-                selectedEvents.forEach(ev => {
-                    if (!bookmarked.some(b => b.name === ev.name && b.date === ev.date)) {
-                        bookmarked.push(ev);
-                    }
-                });
-                localStorage.setItem('bookmarkedEvents', JSON.stringify(bookmarked));
-                showToast('Bookmarked ' + selectedEvents.length + ' event(s) for later!');
-                // Clear selection
-                selectMode = false;
-                updateSelectButtons();
-                document.querySelectorAll('.event-card.selected').forEach(card => {
-                    card.classList.remove('selected');
-                    const selectBtn = card.querySelector('.event-select-btn');
-                    if (selectBtn) selectBtn.textContent = 'Select';
-                });
+        function toggleBookmark(eventIdx) {
+            const event = staticEvents[eventIdx];
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                showToast('Please login to bookmark events');
+                showSection('login');
                 return;
             }
-            isBookmarked = !isBookmarked;
-            btn.innerText = isBookmarked ? "✅ Bookmarked" : "🔖 Bookmark";
-            btn.style.backgroundColor = isBookmarked ? "#ffc107" : "#fff";
+
+            const bookmarkBtn = document.querySelectorAll('.event-bookmark-btn')[eventIdx];
+            bookmarkBtn.textContent = '✓ Bookmarked';
+            bookmarkBtn.classList.add('bookmarked');
+
+            let bookmarked = JSON.parse(localStorage.getItem('bookmarkedEvents') || '[]');
+            const isBookmarked = bookmarked.some(b => b.name === event.name && b.date === event.date);
+
+            if (isBookmarked) {
+                bookmarked = bookmarked.filter(b => !(b.name === event.name && b.date === event.date));
+                showToast('Event removed from bookmarks');
+            } else {
+                bookmarked.push(event);
+                showToast('Event bookmarked successfully');
+            }
+
+            localStorage.setItem('bookmarkedEvents', JSON.stringify(bookmarked));
+
+            // Reset button after 1000ms (1 second)
+            setTimeout(() => {
+                bookmarkBtn.textContent = '🔖 Bookmark';
+                bookmarkBtn.classList.remove('bookmarked');
+            }, 1000);
         }
 
         function showToast(message) {
@@ -675,35 +714,38 @@
             }, 2200);
         }
 
-        function toggleLike() {
-            const btn = document.getElementById("likeBtn");
-            if (selectMode) {
-                // Save all selected events to localStorage as liked
-                const selectedIdxs = Array.from(document.querySelectorAll('.event-card.selected')).map(card => Array.from(document.querySelectorAll('.event-card')).indexOf(card));
-                const selectedEvents = selectedIdxs.map(idx => staticEvents[idx]);
-                let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
-                // Avoid duplicates
-                selectedEvents.forEach(ev => {
-                    if (!liked.some(b => b.name === ev.name && b.date === ev.date)) {
-                        liked.push(ev);
-                    }
-                });
-                localStorage.setItem('likedEvents', JSON.stringify(liked));
-                showToast('Liked ' + selectedEvents.length + ' event(s)!');
-                // Clear selection
-                selectMode = false;
-                updateSelectButtons();
-                document.querySelectorAll('.event-card.selected').forEach(card => {
-                    card.classList.remove('selected');
-                    const selectBtn = card.querySelector('.event-select-btn');
-                    if (selectBtn) selectBtn.textContent = 'Select';
-                });
+        function toggleLike(eventIdx) {
+            const event = staticEvents[eventIdx];
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                showToast('Please login to like events');
+                showSection('login');
                 return;
             }
-            isLiked = !isLiked;
-            btn.innerText = isLiked ? "❤️ Liked" : "❤️ Like";
-            btn.style.backgroundColor = isLiked ? "#dc3545" : "#fff";
-            btn.style.color = isLiked ? "#fff" : "#000";
+
+            const likeBtn = document.querySelectorAll('.event-like-btn')[eventIdx];
+            likeBtn.textContent = '✓ Liked';
+            likeBtn.classList.add('liked');
+
+            let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
+            const isLiked = liked.some(b => b.name === event.name && b.date === event.date);
+
+            if (isLiked) {
+                liked = liked.filter(b => !(b.name === event.name && b.date === event.date));
+                showToast('Event removed from likes');
+            } else {
+                liked.push(event);
+                showToast('Event liked successfully');
+            }
+
+            localStorage.setItem('likedEvents', JSON.stringify(liked));
+
+            // Reset button after 1000ms (1 second)
+            setTimeout(() => {
+                likeBtn.textContent = '❤️ Like';
+                likeBtn.classList.remove('liked');
+            }, 1000);
         }
 
         // Use static events list instead of fetching from backend
@@ -795,23 +837,13 @@
         function toggleEvents() {
             const eventsContainer = document.getElementById('events-container');
             const btn = document.getElementById('showAllEventsBtn');
-            const bookmarkBtn = document.getElementById('bookmarkBtn');
-            const likeBtn = document.getElementById('likeBtn');
-            const selectBtn = document.getElementById('selectEventToggleBtn');
             const allBtns = document.querySelectorAll('.button-container button');
-            const upcomingEventsTitle = eventsContainer.querySelector('h2');
             
             if (!eventsContainer.classList.contains('open')) {
                 loadHomeEvents();
                 eventsContainer.classList.add('open');
                 btn.textContent = 'Hide Events';
                 allBtns.forEach(b => b.classList.add('active'));
-                bookmarkBtn.style.display = '';
-                likeBtn.style.display = '';
-                selectBtn.style.display = '';
-                if (upcomingEventsTitle) {
-                    upcomingEventsTitle.style.display = 'block';
-                }
                 setTimeout(() => {
                     document.querySelectorAll('.event-card').forEach((card, i) => {
                         card.classList.remove('animated');
@@ -822,15 +854,7 @@
                 eventsContainer.classList.remove('open');
                 btn.textContent = 'Show All Events';
                 allBtns.forEach(b => b.classList.remove('active'));
-                bookmarkBtn.style.display = 'none';
-                likeBtn.style.display = 'none';
-                selectBtn.style.display = 'none';
-                if (upcomingEventsTitle) {
-                    upcomingEventsTitle.style.display = 'none';
-                }
-                selectMode = false;
             }
-            updateSelectButtons();
         }
         function toggleSelectMode() {
             selectMode = !selectMode;
@@ -865,11 +889,13 @@
                     <div class="event-date">${event.date}</div>
                     <div class="event-desc">${event.description}</div>
                     <span class="event-category">${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>
-                    <button onclick="bookEvent(${idx})" class="event-book-btn">Book</button>
-                    <button onclick="selectEvent(${idx})" class="event-select-btn">Select</button>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button onclick="bookEvent(${idx})" class="event-book-btn">Book</button>
+                        <button onclick="toggleBookmark(${idx})" class="event-bookmark-btn">🔖 Bookmark</button>
+                        <button onclick="toggleLike(${idx})" class="event-like-btn">❤️ Like</button>
+                    </div>
                 </div>
             `).join('');
-            updateSelectButtons();
         }
         function bookEvent(eventIdx) {
             const event = staticEvents[eventIdx];
