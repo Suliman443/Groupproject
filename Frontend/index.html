@@ -509,8 +509,8 @@
                     <a href="account.html" style="background: #00c3ad; color: #000; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none;">My Account</a>
                 </div>
             </li>
-        </ul>
-    </nav>
+            </ul>
+        </nav>
 
     <div class="content" id="home-section" style="display: flex;">
         <h1>Smart Tourism Event Management</h1>
@@ -519,20 +519,21 @@
         </div>
         <div class="events-container" id="events-container">
             <h2 style="margin: 1rem 0; text-align: center; display: none;">Upcoming Events</h2>
-            <div id="events-list"></div>
-        </div>
-    </div>
+          <div id="events-list"></div>
+                    </div>
+                    </div>
 
     <div class="content" id="login-section" style="display: none;">
         <div class="login-box">
             <h2>Login</h2>
             <form>
-                <label for="username">Username</label>
-                <input type="text" id="username" placeholder="username" required />
+                <label for="username">Email</label>
+                <input type="text" id="username" placeholder="Email" required />
                 <label for="password">Password</label>
-                <input type="password" id="password" placeholder="password" required />
-                    <button type="submit">Login</button>
+                <input type="password" id="password" placeholder="Password" required />
+                    <button type="submit" class="login-btn">Login</button>
                 </form>
+                <p class="organizer-link">Are you an organizer? <a href="organizer-login.html">Login here</a></p>
             </div>
         </div>
 
@@ -665,8 +666,8 @@
             if (sectionParam === 'home') {
                 showSection('home');
             } else {
-                const savedSection = localStorage.getItem("currentSection") || "home";
-                showSection(savedSection);
+            const savedSection = localStorage.getItem("currentSection") || "home";
+            showSection(savedSection);
             }
         };
 
@@ -687,7 +688,7 @@
             bookmarkBtn.textContent = '✓ Bookmarked';
             bookmarkBtn.classList.add('bookmarked');
 
-            let bookmarked = JSON.parse(localStorage.getItem('bookmarkedEvents') || '[]');
+                let bookmarked = JSON.parse(localStorage.getItem('bookmarkedEvents') || '[]');
             const isBookmarked = bookmarked.some(b => b.name === event.name && b.date === event.date);
 
             if (isBookmarked) {
@@ -698,7 +699,7 @@
                 showToast('Event bookmarked successfully');
             }
 
-            localStorage.setItem('bookmarkedEvents', JSON.stringify(bookmarked));
+                localStorage.setItem('bookmarkedEvents', JSON.stringify(bookmarked));
 
             // Reset button after 1000ms (1 second)
             setTimeout(() => {
@@ -735,7 +736,7 @@
             likeBtn.textContent = '✓ Liked';
             likeBtn.classList.add('liked');
 
-            let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
+                let liked = JSON.parse(localStorage.getItem('likedEvents') || '[]');
             const isLiked = liked.some(b => b.name === event.name && b.date === event.date);
 
             if (isLiked) {
@@ -746,7 +747,7 @@
                 showToast('Event liked successfully');
             }
 
-            localStorage.setItem('likedEvents', JSON.stringify(liked));
+                localStorage.setItem('likedEvents', JSON.stringify(liked));
 
             // Reset button after 1000ms (1 second)
             setTimeout(() => {
@@ -897,7 +898,7 @@
                     <div class="event-desc">${event.description}</div>
                     <span class="event-category">${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button onclick="bookEvent(${idx})" class="event-book-btn">Book</button>
+                    <button onclick="bookEvent(${idx})" class="event-book-btn">Book</button>
                         <button onclick="toggleBookmark(${idx})" class="event-bookmark-btn">🔖 Bookmark</button>
                         <button onclick="toggleLike(${idx})" class="event-like-btn">❤️ Like</button>
                     </div>
@@ -1027,53 +1028,73 @@
         }
 
         // Add login form submission handler
-        document.querySelector('#login-section form').addEventListener('submit', function(e) {
+        document.querySelector('#login-section form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const username = document.getElementById('username').value;
+            const email = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = users.find(u => u.username === username && u.password === password);
-            
-            if (user) {
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                showToast('Welcome back, ' + username + '!');
-                updateNavbar();
-                showSection('home');
-            } else {
-                showToast('Invalid username or password');
+            try {
+                const response = await fetch('http://localhost:5000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store user data in localStorage
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        email: email,
+                        fullname: data.fullname || email.split('@')[0],
+                        username: email.split('@')[0]
+                    }));
+                    showToast('Welcome back!');
+                    updateNavbar();
+                    showSection('home');
+                } else {
+                    showToast(data.message || 'Invalid credentials');
+                }
+            } catch (error) {
+                showToast('Error connecting to server');
+                console.error('Login error:', error);
             }
         });
 
         // Add registration form submission handler
-        document.querySelector('#register-section form').addEventListener('submit', function(e) {
+        document.querySelector('#register-section form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const fullname = document.getElementById('fullname').value;
-            const email = document.getElementById('email').value;
-            const username = document.getElementById('reg-username').value;
-            const password = document.getElementById('reg-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const fullname = document.getElementById('register-fullname').value;
             
-            if (password !== confirmPassword) {
-                showToast('Passwords do not match');
-                return;
+            try {
+                const response = await fetch('http://localhost:5000/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        fullname
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast('Registration successful! Please login.');
+                    showSection('login');
+                } else {
+                    showToast(data.message || 'Registration failed');
+                }
+            } catch (error) {
+                showToast('Error connecting to server');
+                console.error('Registration error:', error);
             }
-            
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            
-            if (users.some(u => u.username === username)) {
-                showToast('Username already exists');
-                return;
-            }
-            
-            const newUser = { fullname, email, username, password };
-            users.push(newUser);
-            localStorage.setItem('users', JSON.stringify(users));
-            localStorage.setItem('currentUser', JSON.stringify(newUser));
-            
-            showToast('Registration successful! Welcome, ' + username);
-            updateNavbar();
-            showSection('home');
         });
 
         function selectEvent(eventIdx) {

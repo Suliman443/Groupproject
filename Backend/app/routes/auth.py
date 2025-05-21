@@ -5,12 +5,13 @@ from app.extensions import db
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/signup', methods=['GET', 'POST'])
+@auth_bp.route('/signup', methods=['POST'])
 def signup():
-    if request.method == 'GET':
-        return jsonify({"info": "get function is working."})
-    
     data = request.get_json()
+    
+    # Validate required fields
+    if not all(k in data for k in ['email', 'password', 'fullname']):
+        return jsonify({'message': 'Missing required fields'}), 400
     
     # Check if user already exists
     existing_user = User.query.filter_by(email=data['email']).first()
@@ -21,17 +22,41 @@ def signup():
     new_user = User(
         email=data['email'],
         hashed_password=hashed_password,
+        fullname=data['fullname'],
         role='user'
     )
     
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({'message': 'User created successfully'}), 201
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({
+            'message': 'User created successfully',
+            'user': {
+                'email': new_user.email,
+                'fullname': new_user.fullname
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error creating user'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+    
+    if not all(k in data for k in ['email', 'password']):
+        return jsonify({'message': 'Missing email or password'}), 400
+    
     user = User.query.filter_by(email=data['email']).first()
+    
     if user and check_password_hash(user.hashed_password, data['password']):
-        return jsonify({'message': 'Login successful'}), 200
+        return jsonify({
+            'message': 'Login successful',
+            'user': {
+                'email': user.email,
+                'fullname': user.fullname,
+                'role': user.role
+            }
+        }), 200
+    
     return jsonify({'message': 'Invalid credentials'}), 401

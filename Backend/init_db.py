@@ -15,6 +15,7 @@ def init_db():
             test_user = User(
                 email='test@example.com',
                 hashed_password='pbkdf2:sha256:600000$test123$test456',  # This is just for testing
+                fullname='Test User',
                 role='user'
             )
             db.session.add(test_user)

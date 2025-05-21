@@ -18,4 +18,3 @@ class Event(db.Model):
     
     # Relationships
     comments = db.relationship('Comment', backref='event', lazy=True, cascade='all, delete-orphan')
-    creator = db.relationship('User', backref='events', lazy=True)

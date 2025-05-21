@@ -17,4 +17,4 @@ class Listing(db.Model):
 
     # Relationships
     comments = db.relationship('Comment', backref='listing', lazy=True, cascade='all, delete-orphan')
-    creator = db.relationship('User', backref='listings', lazy=True) 
+    # Remove: creator = db.relationship('User', backref='listings', lazy=True) 

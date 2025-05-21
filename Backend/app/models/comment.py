@@ -13,7 +13,7 @@ class Comment(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    author = db.relationship('User', backref='comments', lazy=True)
+    # (No author relationship here)
 
     __table_args__ = (
         db.CheckConstraint('(event_id IS NOT NULL AND listing_id IS NULL) OR (event_id IS NULL AND listing_id IS NOT NULL)',
