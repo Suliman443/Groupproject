@@ -29,6 +29,14 @@ def liked():
 def account():
     return send_from_directory('Frontend', 'account.html')
 
+@app.route('/organizer-login')
+def organizer_login():
+    return send_from_directory('Frontend', 'organizer-login.html')
+
+@app.route('/organizer-dashboard')
+def organizer_dashboard():
+    return send_from_directory('Frontend', 'organizer-dashboard.html')
+
 @app.route('/html/<path:filename>')
 def html_files(filename):
     return send_from_directory('Frontend/Html', filename)
