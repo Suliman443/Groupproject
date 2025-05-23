@@ -1,5 +1,5 @@
 from flask import Flask, jsonify
-from .extensions import db
+from .extensions import db, jwt
 # Import models from the models package
 from .models import User, Event, Comment, Listing
 from .routes.auth import auth_bp  # blueprint import for authentication
@@ -15,6 +15,7 @@ def create_app():
     
     # Initialize extensions
     db.init_app(app)
+    jwt.init_app(app)
     CORS(app)  # Enable CORS for all routes
     
     # Register error handlers
