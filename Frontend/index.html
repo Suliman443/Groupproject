@@ -589,52 +589,196 @@
             }
         }
 
-        function loadHomeEvents() {
+        async function loadHomeEvents() {
             console.log('Loading events...');
             const eventsContainer = document.getElementById('events-list');
-            if (!staticEvents.length) {
-                eventsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;">No events found.</div>';
-                return;
-            }
-            eventsContainer.innerHTML = staticEvents.map((event, idx) => `
-                <div class="event-card">
-                    <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.name}" class="event-image">
-                    <div class="event-title">${event.name}</div>
-                    <div class="event-date">${event.date}</div>
-                    <div class="event-desc">${event.description}</div>
-                    <span class="event-category">${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button onclick="bookEvent(${idx})" class="event-book-btn">Book</button>
-                        <button onclick="toggleBookmark(${idx})" class="event-bookmark-btn">🔖 Bookmark</button>
-                        <button onclick="toggleLike(${idx})" class="event-like-btn">❤️ Like</button>
+            
+            try {
+                // Show loading state
+                eventsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;">Loading events...</div>';
+                
+                // Load real events from database
+                const realEvents = await window.TourismAPI.getEvents();
+                
+                if (!realEvents.length) {
+                    // Fallback to static events if no database events
+                    if (!staticEvents.length) {
+                        eventsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;">No events found.</div>';
+                        return;
+                    }
+                    eventsContainer.innerHTML = staticEvents.map((event, idx) => `
+                        <div class="event-card">
+                            <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.name}" class="event-image">
+                            <div class="event-title">${event.name}</div>
+                            <div class="event-date">${event.date}</div>
+                            <div class="event-desc">${event.description}</div>
+                            <span class="event-category">${event.category}</span>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                <button onclick="bookEvent('static_${idx}')" class="event-book-btn">Book</button>
+                                <button onclick="toggleBookmark('static_${idx}')" class="event-bookmark-btn">🔖 Bookmark</button>
+                                <button onclick="toggleLike('static_${idx}')" class="event-like-btn">❤️ Like</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    return;
+                }
+
+                // Display real database events
+                eventsContainer.innerHTML = realEvents.map((event) => `
+                    <div class="event-card" data-event-id="${event.id}">
+                        <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.title}" class="event-image">
+                        <div class="event-title">${event.title}</div>
+                        <div class="event-date">${new Date(event.date).toLocaleDateString()}</div>
+                        <div class="event-desc">${event.description}</div>
+                        <span class="event-category">Event</span>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button onclick="bookRealEvent(${event.id})" class="event-book-btn">Book</button>
+                            <button onclick="toggleRealBookmark(${event.id})" class="event-bookmark-btn" id="bookmark-btn-${event.id}">🔖 Bookmark</button>
+                            <button onclick="toggleRealLike(${event.id})" class="event-like-btn" id="like-btn-${event.id}">❤️ Like</button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+                
+                // Update bookmark button states
+                await updateBookmarkButtonStates();
+                
+            } catch (error) {
+                console.error('Failed to load events:', error);
+                eventsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#dc3545;">Failed to load events. Please try again.</div>';
+            }
         }
 
-        async function toggleBookmark(eventIdx) {
-            console.log('Bookmark clicked for event:', eventIdx);
+        // Real event bookmark functions
+        async function toggleRealBookmark(eventId) {
+            console.log('Bookmark clicked for real event:', eventId);
             if (!window.AuthManager || !window.AuthManager.isLoggedIn()) {
                 showToast('Please login to bookmark events');
                 showSection('login');
                 return;
             }
-            showToast('Bookmark feature working!');
+
+            try {
+                const bookmarkBtn = document.getElementById(`bookmark-btn-${eventId}`);
+                const bookmarks = await window.TourismAPI.getUserBookmarks();
+                const isBookmarked = bookmarks.some(b => b.event_id === eventId);
+
+                if (isBookmarked) {
+                    await window.TourismAPI.removeBookmark(eventId);
+                    bookmarkBtn.textContent = '🔖 Bookmark';
+                    bookmarkBtn.style.background = '#fff';
+                    bookmarkBtn.style.color = '#00c3ad';
+                    showToast('Event removed from bookmarks');
+                } else {
+                    await window.TourismAPI.addBookmark(eventId);
+                    bookmarkBtn.textContent = '✅ Bookmarked';
+                    bookmarkBtn.style.background = '#00c3ad';
+                    bookmarkBtn.style.color = '#fff';
+                    showToast('Event bookmarked successfully');
+                }
+            } catch (error) {
+                console.error('Bookmark action failed:', error);
+                showToast('Failed to bookmark event. Please try again.');
+            }
         }
 
-        async function toggleLike(eventIdx) {
-            console.log('Like clicked for event:', eventIdx);
+        async function toggleRealLike(eventId) {
+            console.log('Like clicked for real event:', eventId);
             if (!window.AuthManager || !window.AuthManager.isLoggedIn()) {
                 showToast('Please login to like events');
                 showSection('login');
                 return;
             }
-            showToast('Like feature working!');
+
+            try {
+                const likeBtn = document.getElementById(`like-btn-${eventId}`);
+                const likes = await window.TourismAPI.getUserLikes();
+                const isLiked = likes.some(l => l.event_id === eventId);
+
+                if (isLiked) {
+                    await window.TourismAPI.removeLike(eventId);
+                    likeBtn.textContent = '❤️ Like';
+                    likeBtn.style.background = '#fff';
+                    likeBtn.style.color = '#dc3545';
+                    showToast('Event removed from likes');
+                } else {
+                    await window.TourismAPI.addLike(eventId);
+                    likeBtn.textContent = '💖 Liked';
+                    likeBtn.style.background = '#dc3545';
+                    likeBtn.style.color = '#fff';
+                    showToast('Event liked successfully');
+                }
+            } catch (error) {
+                console.error('Like action failed:', error);
+                showToast('Failed to like event. Please try again.');
+            }
+        }
+
+        function bookRealEvent(eventId) {
+            console.log('Book clicked for real event:', eventId);
+            if (!window.AuthManager || !window.AuthManager.isLoggedIn()) {
+                showToast('Please login to book events');
+                showSection('login');
+                return;
+            }
+            showToast('Booking feature working for event ' + eventId);
+        }
+
+        // Update bookmark button states based on user's current bookmarks
+        async function updateBookmarkButtonStates() {
+            if (!window.AuthManager || !window.AuthManager.isLoggedIn()) {
+                return;
+            }
+
+            try {
+                const bookmarks = await window.TourismAPI.getUserBookmarks();
+                const likes = await window.TourismAPI.getUserLikes();
+
+                bookmarks.forEach(bookmark => {
+                    const bookmarkBtn = document.getElementById(`bookmark-btn-${bookmark.event_id}`);
+                    if (bookmarkBtn) {
+                        bookmarkBtn.textContent = '✅ Bookmarked';
+                        bookmarkBtn.style.background = '#00c3ad';
+                        bookmarkBtn.style.color = '#fff';
+                    }
+                });
+
+                likes.forEach(like => {
+                    const likeBtn = document.getElementById(`like-btn-${like.event_id}`);
+                    if (likeBtn) {
+                        likeBtn.textContent = '💖 Liked';
+                        likeBtn.style.background = '#dc3545';
+                        likeBtn.style.color = '#fff';
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to update button states:', error);
+            }
+        }
+
+        // Legacy static event functions (for fallback)
+        async function toggleBookmark(eventIdx) {
+            console.log('Bookmark clicked for static event:', eventIdx);
+            if (!window.AuthManager || !window.AuthManager.isLoggedIn()) {
+                showToast('Please login to bookmark events');
+                showSection('login');
+                return;
+            }
+            showToast('Static events cannot be bookmarked. Please check database events.');
+        }
+
+        async function toggleLike(eventIdx) {
+            console.log('Like clicked for static event:', eventIdx);
+            if (!window.AuthManager || !window.AuthManager.isLoggedIn()) {
+                showToast('Please login to like events');
+                showSection('login');
+                return;
+            }
+            showToast('Static events cannot be liked. Please check database events.');
         }
 
         function bookEvent(eventIdx) {
-            console.log('Book clicked for event:', eventIdx);
-            showToast('Booking feature working!');
+            console.log('Book clicked for static event:', eventIdx);
+            showToast('Static events cannot be booked. Please check database events.');
         }
 
         function updateMapWithEvents() {
@@ -720,6 +864,10 @@
                                 showSection('home');
                                 // Clear form
                                 document.getElementById('login-form').reset();
+                                // Refresh bookmark states if events are visible
+                                setTimeout(() => {
+                                    updateBookmarkButtonStates();
+                                }, 500);
                             } else {
                                 showError(data.message || 'Invalid email or password');
                             }
@@ -809,6 +957,10 @@
         window.toggleBookmark = toggleBookmark;
         window.toggleLike = toggleLike;
         window.bookEvent = bookEvent;
+        window.toggleRealBookmark = toggleRealBookmark;
+        window.toggleRealLike = toggleRealLike;
+        window.bookRealEvent = bookRealEvent;
+        window.updateBookmarkButtonStates = updateBookmarkButtonStates;
         window.showToast = showToast;
         window.updateNavbar = updateNavbar;
         window.logout = logout;
