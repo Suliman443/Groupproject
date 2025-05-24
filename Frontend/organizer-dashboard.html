@@ -379,20 +379,38 @@
 
         // Check if organizer is logged in
         window.onload = async function() {
+            // Wait a bit to ensure API is loaded
+            if (!window.TourismAPI || !window.AuthManager) {
+                console.log('Waiting for API to load...');
+                setTimeout(() => window.onload(), 100);
+                return;
+            }
+            
+            console.log('Organizer dashboard loading...');
             const organizer = JSON.parse(localStorage.getItem('currentOrganizer'));
-            if (!organizer || !window.AuthManager || !window.AuthManager.isLoggedIn()) {
+            console.log('Stored organizer data:', organizer);
+            console.log('Is logged in?', window.AuthManager?.isLoggedIn());
+            
+            if (!organizer || !window.AuthManager.isLoggedIn()) {
+                console.log('No organizer session found, redirecting to login');
                 window.location.href = 'organizer-login.html';
                 return;
             }
             
             // Get fresh user data
             try {
+                console.log('Fetching user profile...');
                 const userData = await window.TourismAPI.getUserProfile();
-                if (userData.user && userData.user.role === 'organizer') {
-                    document.getElementById('organizer-name').textContent = `Welcome, ${userData.user.fullname}`;
+                console.log('User profile data:', userData);
+                
+                // userData is the user object directly, not wrapped in { user: ... }
+                if (userData && userData.role === 'organizer') {
+                    console.log('User is organizer, loading dashboard');
+                    document.getElementById('organizer-name').textContent = `Welcome, ${userData.fullname}`;
                     loadEvents();
                     updateStats();
                 } else {
+                    console.log('User is not organizer. Role:', userData?.role);
                     window.location.href = 'organizer-login.html';
                 }
             } catch (error) {

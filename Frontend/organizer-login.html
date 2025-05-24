@@ -162,20 +162,33 @@
             try {
                 // Use TourismAPI to login
                 const data = await window.TourismAPI.login(email, password);
+                console.log('Login response:', data);
                 
-                if (data.access_token && data.user && data.user.role === 'organizer') {
-                    // Store organizer info in AuthManager
-                    localStorage.setItem('currentOrganizer', JSON.stringify({
-                        id: data.user.id,
-                        name: data.user.fullname,
-                        email: data.user.email
-                    }));
+                if (data.access_token) {
+                    // Login successful, now check if user is organizer
+                    // The profile is already stored in localStorage by the login method
+                    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                    console.log('Current user from localStorage:', currentUser);
                     
-                    // Redirect to dashboard
-                    window.location.href = 'organizer-dashboard.html';
-                } else if (data.access_token && data.user.role !== 'organizer') {
-                    errorMessage.style.display = 'block';
-                    errorMessage.textContent = 'This account is not an organizer account';
+                    if (currentUser && currentUser.role === 'organizer') {
+                        // Store organizer info
+                        localStorage.setItem('currentOrganizer', JSON.stringify({
+                            id: currentUser.id,
+                            name: currentUser.fullname,
+                            email: currentUser.email
+                        }));
+                        
+                        // Redirect to dashboard
+                        window.location.href = 'organizer-dashboard.html';
+                    } else if (currentUser && currentUser.role !== 'organizer') {
+                        // User is not an organizer, logout and show error
+                        window.AuthManager.logout();
+                        errorMessage.style.display = 'block';
+                        errorMessage.textContent = 'This account is not an organizer account';
+                    } else {
+                        errorMessage.style.display = 'block';
+                        errorMessage.textContent = 'Failed to verify user role';
+                    }
                 } else {
                     errorMessage.style.display = 'block';
                     errorMessage.textContent = data.message || 'Invalid credentials';
