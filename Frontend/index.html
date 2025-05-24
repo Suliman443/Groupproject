@@ -364,6 +364,30 @@
             background: #dc3545;
             color: #fff;
         }
+        .comment-section {
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+        .comments-list {
+            margin-bottom: 0.5rem;
+        }
+        .comment {
+            margin-bottom: 0.2rem;
+        }
+        .event-comment-btn {
+            background: #00c3ad;
+            color: #fff;
+            padding: 0.3rem 0.7rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.3s ease;
+        }
+        .event-comment-btn:hover {
+            background: #00c3ad;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -613,12 +637,20 @@
                     <div class="event-title">${event.name}</div>
                     <div class="event-date">${event.date}</div>
                     <div class="event-desc">${event.description}</div>
-                            <span class="event-category">${event.category}</span>
+                    <span class="event-category">${event.category}</span>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                <button onclick="bookEvent('static_${idx}')" class="event-book-btn">Book</button>
-                                <button onclick="toggleBookmark('static_${idx}')" class="event-bookmark-btn">🔖 Bookmark</button>
-                                <button onclick="toggleLike('static_${idx}')" class="event-like-btn">❤️ Like</button>
+                        <button onclick="bookEvent('static_${idx}')" class="event-book-btn">Book</button>
+                        <button onclick="toggleBookmark('static_${idx}')" class="event-bookmark-btn">�� Bookmark</button>
+                        <button onclick="toggleLike('static_${idx}')" class="event-like-btn">❤️ Like</button>
                     </div>
+                    <div class="comment-section" id="comment-section-static-${idx}" style="display:none;">
+                        <div class="comments-list" id="comments-list-static-${idx}"></div>
+                        <form onsubmit="submitStaticComment(event, ${idx})">
+                            <input type="text" id="comment-input-static-${idx}" placeholder="Add a comment..." required />
+                            <button type="submit">Post</button>
+                        </form>
+                    </div>
+                    <button onclick="toggleCommentSection('static', ${idx})" class="event-comment-btn" style="margin-top:8px;">💬 Comments</button>
                 </div>
             `).join('');
                     return;
@@ -637,6 +669,14 @@
                             <button onclick="toggleRealBookmark(${event.id})" class="event-bookmark-btn" id="bookmark-btn-${event.id}">🔖 Bookmark</button>
                             <button onclick="toggleRealLike(${event.id})" class="event-like-btn" id="like-btn-${event.id}">❤️ Like</button>
                         </div>
+                        <div class="comment-section" id="comment-section-db-${event.id}" style="display:none;">
+                            <div class="comments-list" id="comments-list-db-${event.id}"></div>
+                            <form onsubmit="submitDbComment(event, ${event.id})">
+                                <input type="text" id="comment-input-db-${event.id}" placeholder="Add a comment..." required />
+                                <button type="submit">Post</button>
+                            </form>
+                        </div>
+                        <button onclick="toggleCommentSection('db', ${event.id})" class="event-comment-btn" style="margin-top:8px;">💬 Comments</button>
                     </div>
                 `).join('');
                 
@@ -965,6 +1005,84 @@
         window.showToast = showToast;
         window.updateNavbar = updateNavbar;
         window.logout = logout;
+
+        window.toggleCommentSection = function(type, id) {
+            const sectionId = type === 'db' ? `comment-section-db-${id}` : `comment-section-static-${id}`;
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+            if (section.style.display === 'block') {
+                if (type === 'db') {
+                    loadDbComments(id);
+                } else {
+                    loadStaticComments(id);
+                }
+            }
+        };
+
+        async function loadDbComments(eventId) {
+            const list = document.getElementById(`comments-list-db-${eventId}`);
+            if (!list) return;
+            list.innerHTML = 'Loading comments...';
+            try {
+                const comments = await window.TourismAPI.getEventComments(eventId);
+                if (!comments.length) {
+                    list.innerHTML = '<em>No comments yet.</em>';
+                } else {
+                    list.innerHTML = comments.map(c => `<div class='comment'><b>${c.created_by || (c.author && c.author.fullname) || 'User'}:</b> ${c.content}</div>`).join('');
+                }
+            } catch (e) {
+                list.innerHTML = '<span style="color:red">Failed to load comments.</span>';
+            }
+        }
+
+        function loadStaticComments(idx) {
+            const list = document.getElementById(`comments-list-static-${idx}`);
+            if (!list) return;
+            const comments = JSON.parse(localStorage.getItem(`eventComments_${idx}`) || '[]');
+            if (!comments.length) {
+                list.innerHTML = '<em>No comments yet.</em>';
+            } else {
+                list.innerHTML = comments.map(c => `<div class='comment'><b>${c.user || 'User'}:</b> ${c.content}</div>`).join('');
+            }
+        }
+
+        window.submitDbComment = async function(e, eventId) {
+            e.preventDefault();
+            const input = document.getElementById(`comment-input-db-${eventId}`);
+            const content = input.value.trim();
+            if (!window.AuthManager || !window.AuthManager.isLoggedIn()) {
+                showToast('Please login to comment');
+                showSection('login');
+                return;
+            }
+            if (!content) return;
+            try {
+                await window.TourismAPI.addEventComment(eventId, { content });
+                input.value = '';
+                await loadDbComments(eventId);
+            } catch (err) {
+                showToast('Failed to post comment.');
+            }
+        };
+
+        window.submitStaticComment = function(e, idx) {
+            e.preventDefault();
+            const input = document.getElementById(`comment-input-static-${idx}`);
+            const content = input.value.trim();
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                showToast('Please login to comment');
+                showSection('login');
+                return;
+            }
+            if (!content) return;
+            const comments = JSON.parse(localStorage.getItem(`eventComments_${idx}`) || '[]');
+            comments.push({ user: currentUser?.username || 'User', content });
+            localStorage.setItem(`eventComments_${idx}`, JSON.stringify(comments));
+            input.value = '';
+            loadStaticComments(idx);
+        };
     </script>
 </body>
 </html> 
