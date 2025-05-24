@@ -52,6 +52,56 @@ def init_db():
                 'date': datetime.now() + timedelta(days=21),
                 'image_url': 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678',
                 'created_by': test_user.id
+            },
+            {
+                'title': "Guns N' Roses Concert",
+                'description': "Guns N' Roses will kick off their 2025 tour in Riyadh.",
+                'location': "Riyadh",
+                'latitude': 24.7136,
+                'longitude': 46.6753,
+                'date': datetime(2025, 5, 23, 20, 0),
+                'image_url': "images/Guns N' Roses Concert.png",
+                'created_by': test_user.id
+            },
+            {
+                'title': "WWE Night of Champions",
+                'description': "WWE's Night of Champions event featuring top wrestlers.",
+                'location': "Riyadh",
+                'latitude': 24.774265,
+                'longitude': 46.738586,
+                'date': datetime(2025, 6, 28, 19, 0),
+                'image_url': "images/WWE Night of Champions.png",
+                'created_by': test_user.id
+            },
+            {
+                'title': "Esports World Cup",
+                'description': "International esports tournament with 25 events.",
+                'location': "Riyadh",
+                'latitude': 24.774265,
+                'longitude': 46.738586,
+                'date': datetime(2025, 7, 8, 10, 0),
+                'image_url': "images/Esports World Cup.png",
+                'created_by': test_user.id
+            },
+            {
+                'title': "Foodex Saudi 2025",
+                'description': "International food and beverage trade exhibition.",
+                'location': "Riyadh",
+                'latitude': 24.774265,
+                'longitude': 46.738586,
+                'date': datetime(2025, 9, 21, 9, 0),
+                'image_url': "images/Foodex Saudi 2025.jpg",
+                'created_by': test_user.id
+            },
+            {
+                'title': "Saudi Agriculture 2025",
+                'description': "Exhibition on agriculture, food, and agro-industry.",
+                'location': "Riyadh",
+                'latitude': 24.774265,
+                'longitude': 46.738586,
+                'date': datetime(2025, 10, 20, 10, 0),
+                'image_url': "images/Saudi Agriculture 2025.jpg",
+                'created_by': test_user.id
             }
         ]
         
