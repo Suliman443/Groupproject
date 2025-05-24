@@ -603,26 +603,26 @@
                 
                 if (!realEvents.length) {
                     // Fallback to static events if no database events
-                    if (!staticEvents.length) {
-                        eventsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;">No events found.</div>';
-                        return;
-                    }
-                    eventsContainer.innerHTML = staticEvents.map((event, idx) => `
-                        <div class="event-card">
-                            <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.name}" class="event-image">
-                            <div class="event-title">${event.name}</div>
-                            <div class="event-date">${event.date}</div>
-                            <div class="event-desc">${event.description}</div>
+            if (!staticEvents.length) {
+                eventsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;">No events found.</div>';
+                return;
+            }
+            eventsContainer.innerHTML = staticEvents.map((event, idx) => `
+                <div class="event-card">
+                    <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.name}" class="event-image">
+                    <div class="event-title">${event.name}</div>
+                    <div class="event-date">${event.date}</div>
+                    <div class="event-desc">${event.description}</div>
                             <span class="event-category">${event.category}</span>
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                                 <button onclick="bookEvent('static_${idx}')" class="event-book-btn">Book</button>
                                 <button onclick="toggleBookmark('static_${idx}')" class="event-bookmark-btn">🔖 Bookmark</button>
                                 <button onclick="toggleLike('static_${idx}')" class="event-like-btn">❤️ Like</button>
-                            </div>
-                        </div>
-                    `).join('');
+                    </div>
+                </div>
+            `).join('');
                     return;
-                }
+        }
 
                 // Display real database events
                 eventsContainer.innerHTML = realEvents.map((event) => `

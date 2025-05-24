@@ -35,6 +35,10 @@ def account():
 def organizer_login():
     return send_from_directory('Frontend', 'organizer-login.html')
 
+@app.route('/organizer-signup')
+def organizer_signup():
+    return send_from_directory('Frontend', 'organizer-signup.html')
+
 @app.route('/organizer-dashboard')
 def organizer_dashboard():
     return send_from_directory('Frontend', 'organizer-dashboard.html')
@@ -181,6 +185,7 @@ if __name__ == '__main__':
     print("   /liked - Liked events page")
     print("   /account - Account page")
     print("   /organizer-login - Organizer login")
+    print("   /organizer-signup - Organizer registration")
     print("   /organizer-dashboard - Organizer dashboard")
     print("   /api/* - API proxy to backend")
     print("\n✨ All API calls will be automatically proxied to the backend!")

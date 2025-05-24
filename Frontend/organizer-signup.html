@@ -189,8 +189,8 @@
             }
             
             try {
-                // Use TourismAPI to register as organizer
-                const response = await fetch(`${window.TourismAPI.BASE_URL}/auth/organizer/signup`, {
+                // Use API endpoint through proxy
+                const response = await fetch('/api/auth/organizer/signup', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
