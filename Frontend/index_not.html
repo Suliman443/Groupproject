@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Smart Tourism Event Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: #000;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            background-color: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #444;
+        }
+        .navbar .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            user-select: none;
+            text-decoration: underline;
+        }
+        .navbar ul {
+            list-style: none;
+            display: flex;
+            gap: 1.5rem;
+        }
+        .navbar ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 2px;
+            cursor: pointer;
+        }
+        .navbar ul li a:hover {
+            color: #ccc;
+            border-bottom: 2px solid #ccc;
+        }
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        .hamburger span {
+            height: 3px;
+            width: 25px;
+            background: white;
+            margin: 4px 0;
+            border-radius: 2px;
+        }
+        @media (max-width: 768px) {
+            .navbar ul {
+                position: absolute;
+                top: 70px;
+                left: 0;
+                width: 100%;
+                flex-direction: column;
+                background-color: #111;
+                display: none;
+            }
+            .navbar ul.show {
+                display: flex;
+            }
+            .hamburger {
+                display: flex;
+            }
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .login-box {
+            background-color: #111;
+            padding: 3rem 3.5rem;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            max-width: 500px;
+            width: 100%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            color: #fff;
+        }
+        .login-box:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+        }
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+        .login-box label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #ddd;
+        }
+        .login-box input[type="text"],
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 0.7rem;
+            margin-bottom: 1rem;
+            border: none;
+            border-radius: 6px;
+            background-color: #222;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #fff;
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .login-box button:hover {
+            background-color: #ccc;
+        }
+        .map-container {
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            position: relative;
+            margin: 1rem auto;
+        }
+        #leaflet-map {
+            width: 100%;
+            height: 100%;
+        }
+        .event-popup {
+            background: #111;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 200px;
+        }
+        .event-popup h3 {
+            margin: 0 0 5px 0;
+            color: #00c3ad;
+        }
+        .event-popup p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        .event-popup .event-date {
+            color: #00c3ad;
+            font-weight: 600;
+        }
+        .event-popup .event-location {
+            color: #ccc;
+            font-size: 0.8rem;
+        }
+        .map-buttons {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 1000;
+        }
+        .map-buttons button {
+            background: #fff;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 18px;
+            color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            padding: 0;
+        }
+        .map-buttons button.active {
+            background-color: #007bff;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.7);
+        }
+        .button-container {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .button-container button {
+            background: #111;
+            color: #fff;
+            font-weight: 700;
+            padding: 0.55rem 1.1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.98rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            transition: background 0.3s, color 0.3s, box-shadow 0.3s, transform 0.22s;
+        }
+        .button-container button.active {
+            background: #fff;
+            color: #111;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.13);
+            transform: scale(1.07);
+        }
+        .button-container button:hover {
+            transform: scale(1.04);
+            box-shadow: 0 0 10px 2px rgba(255,255,255,0.1), 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .footer {
+            background: #000;
+            color: #fff;
+            padding: 2rem 0 1rem 0;
+            text-align: center;
+        }
+        .toast {
+            position: fixed;
+            left: 2rem;
+            bottom: 2rem;
+            background: #222;
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+            font-size: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+            transition: opacity 0.4s, transform 0.4s;
+            transform: translateY(30px);
+        }
+        .toast.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        #home-section {
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('images/riyadh.jpg');
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Events grid and card styles */
+        .events-container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            overflow: hidden;
+            transition: max-height 1.2s cubic-bezier(.4,2,.6,1), opacity 1s;
+            max-height: 0;
+            opacity: 0;
+            will-change: max-height, opacity;
+        }
+        .events-container.open {
+            max-height: 700px; /* Limit the height when open */
+            opacity: 1;
+            overflow: visible;
+        }
+        #events-list {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.2rem;
+            margin-top: 2rem;
+            max-height: 600px; /* Set a max height for scrolling */
+            overflow-y: auto; /* Enable vertical scroll */
+            padding-right: 8px; /* Space for scrollbar */
+        }
+        .event-card {
+            background: #18181b;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 0.7rem 1.2rem 0.7rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            transition: transform 0.8s cubic-bezier(.4,2,.6,1), box-shadow 0.8s, background 0.8s, filter 0.8s;
+            position: relative;
+            min-width: 0;
+            max-width: 100%;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 1.2s forwards;
+        }
+        .event-card.animated {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .event-card:hover {
+            transform: scale(1.08) translateY(-6px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+            background: #23232a;
+            z-index: 2;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .event-image {
+            width: 100%;
+            height: 200px; /* Set a fixed height for the image */
+            object-fit: cover; /* Ensure the image covers the area */
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        .event-image::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Dark overlay to dim the image */
+            border-radius: 6px;
+        }
+        .event-title {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            position: relative;
+            z-index: 1; /* Ensure text is above the overlay */
+        }
+        .event-date {
+            color: #00c3ad;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+        .event-desc {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .event-category {
+            background: #00c3ad;
+            color: #000;
+            padding: 0.12rem 0.5rem;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+        .event-book-btn {
+            background: #fff;
+            color: #00c3ad;
+            font-weight: 700;
+            padding: 0.4rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            align-self: flex-end;
+            transition: background 0.2s, color 0.2s;
+        }
+        .event-book-btn:hover {
+            background: #00c3ad;
+            color: #fff;
+        }
+        .event-card.selected {
+            border: 2px solid #00c3ad;
+        }
+        .event-select-btn {
+            display: none; /* Hide by default */
+            background: #00c3ad;
+            color: #fff;
+            font-weight: 700;
+            padding: 0.4rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            align-self: flex-end;
+            transition: background 0.2s, color 0.2s;
+        }
+        .event-select-btn.visible {
+            display: inline-block;
+        }
+        .event-select-btn:hover {
+            background: #00a3ad;
+        }
+        @media (max-width: 600px) {
+            #events-list {
+                grid-template-columns: 1fr;
+                gap: 0.7rem;
+            }
+            .event-card {
+                padding: 0.7rem 0.5rem 0.7rem 0.5rem;
+            }
+        }
+        #showAllEventsBtn {
+            background: #111;
+            color: #fff;
+            font-weight: 700;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            transition: background 0.3s, color 0.3s, box-shadow 0.3s, transform 0.2s;
+        }
+        #showAllEventsBtn.active {
+            background: #fff;
+            color: #111;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+            transform: scale(1.07);
+        }
+        .event-bookmark-btn {
+            background: #fff;
+            color: #00c3ad;
+            font-weight: 700;
+            padding: 0.3rem 0.7rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        .event-bookmark-btn:hover {
+            background: #00c3ad;
+            color: #fff;
+        }
+        .event-bookmark-btn.bookmarked {
+            background: #00c3ad;
+            color: #fff;
+        }
+        .event-like-btn {
+            background: #fff;
+            color: #dc3545;
+            font-weight: 700;
+            padding: 0.3rem 0.7rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        .event-like-btn:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+        .event-like-btn.liked {
+            background: #dc3545;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+        <nav class="navbar">
+        <div class="logo" onclick="showSection('home')">Smart Tourism Event Management</div>
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul id="nav-links">
+            <li><a onclick="showSection('home')">Home</a></li>
+            <li><a onclick="showSection('login')">Login</a></li>
+            <li><a onclick="showSection('register')">Register</a></li>
+            <li><a onclick="showSection('map')">Map</a></li>
+            <li><a href="bookmarks.html">Bookmarked Events</a></li>
+            <li><a href="liked.html">Liked Events</a></li>
+            <li id="account-nav" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span id="welcome-text" style="color: #00c3ad;"></span>
+                    <a href="account.html" style="background: #00c3ad; color: #000; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none;">My Account</a>
+                </div>
+            </li>
+            </ul>
+        </nav>
+
+    <div class="content" id="home-section" style="display: flex;">
+        <h1>Smart Tourism Event Management</h1>
+        <div class="button-container">
+            <button id="showAllEventsBtn" onclick="toggleEvents()">Show All Events</button>
+        </div>
+        <div class="events-container" id="events-container">
+            <h2 style="margin: 1rem 0; text-align: center; display: none;">Upcoming Events</h2>
+          <div id="events-list"></div>
+                    </div>
+                    </div>
+
+    <div class="content" id="login-section" style="display: none;">
+        <div class="login-box">
+            <h2>Login</h2>
+            <form id="login-form">
+                <label for="email">Email</label>
+                <input type="text" id="email" placeholder="Email" required />
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Password" required />
+                <button type="submit">Login</button>
+            </form>
+            <p class="organizer-link">Are you an organizer? <a href="organizer-login.html">Login here</a></p>
+            <div id="error-message" style="color: red; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="content" id="register-section" style="display: none;">
+        <div class="login-box">
+            <h2>Register A New Account</h2>
+            <form id="signup-form">
+                <label for="fullname">Full Name</label>
+                <input type="text" id="fullname" placeholder="Full Name" required />
+                <label for="email">Email</label>
+                <input type="text" id="signup-email" placeholder="Email" required />
+                <label for="password">Password</label>
+                <input type="password" id="signup-password" placeholder="Password" required />
+                <button type="submit">Register</button>
+            </form>
+            <div id="success-message" style="color: green; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="content" id="map-section" style="display: none;">
+        <div class="map-container">
+            <div id="leaflet-map"></div>
+            <div class="map-buttons">
+                <button id="btnSatellite" class="active" onclick="switchLayer('satellite')" title="Satellite View">🛰️</button>
+                <button id="btnLight" onclick="switchLayer('light')" title="Light Mode">☀️</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2024 Smart Tourism Event Management. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div class="toast">
+        <!-- Toast message content will be dynamically added here -->
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        function toggleMenu() {
+            const navLinks = document.getElementById("nav-links");
+            navLinks.classList.toggle("show");
+        }
+
+        let map;
+        let satelliteLayer, lightLayer;
+        let markers = [];
+        let currentLayer = "satellite";
+
+        function initMap() {
+            map = L.map('leaflet-map').setView([24.7136, 46.6753], 12);
+
+            satelliteLayer = L.tileLayer(
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, ' +
+                        'Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                    maxZoom: 19
+                });
+
+            lightLayer = L.tileLayer(
+                'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+                    maxZoom: 19
+                });
+
+            // Start with satellite layer
+            satelliteLayer.addTo(map);
+
+            // No hardcoded events. Markers are added dynamically from staticEvents in updateMapWithEvents().
+        }
+
+        function switchLayer(layerName) {
+            if (!map) return;
+
+            if (layerName === currentLayer) return;
+
+            if (layerName === 'satellite') {
+                map.removeLayer(lightLayer);
+                map.addLayer(satelliteLayer);
+                currentLayer = 'satellite';
+            } else if (layerName === 'light') {
+                map.removeLayer(satelliteLayer);
+                map.addLayer(lightLayer);
+                currentLayer = 'light';
+            }
+
+            // Update button styles
+            document.getElementById('btnSatellite').classList.toggle('active', currentLayer === 'satellite');
+            document.getElementById('btnLight').classList.toggle('active', currentLayer === 'light');
+        }
+
+        function showSection(section) {
+            document.getElementById("home-section").style.display = "none";
+            document.getElementById("login-section").style.display = "none";
+            document.getElementById("register-section").style.display = "none";
+            document.getElementById("map-section").style.display = "none";
+
+            if (section === "home") {
+                document.getElementById("home-section").style.display = "flex";
+            } else if (section === "login") {
+                document.getElementById("login-section").style.display = "flex";
+            } else if (section === "register") {
+                document.getElementById("register-section").style.display = "flex";
+            } else if (section === "map") {
+                document.getElementById("map-section").style.display = "flex";
+                if (!map) {
+                    initMap();
+                }
+                updateMapWithEvents();
+            }
+
+            // Save the current section to localStorage
+            localStorage.setItem("currentSection", section);
+
+            // Close hamburger menu on selection
+            const navLinks = document.getElementById("nav-links");
+            navLinks.classList.remove("show");
+        }
+
+        // Initialize default user if no users exist
+        window.onload = function() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            if (users.length === 0) {
+                // Add default user
+                const defaultUser = {
+                    email: 'user@example.com',
+                    password: 'password123',
+                    fullname: 'Default User'
+                };
+                users.push(defaultUser);
+                localStorage.setItem('users', JSON.stringify(users));
+                console.log('Default user created:', defaultUser);
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const sectionParam = urlParams.get('section');
+            
+            if (sectionParam === 'home') {
+                showSection('home');
+            } else {
+                const savedSection = localStorage.getItem("currentSection") || "home";
+                showSection(savedSection);
+            }
+        };
+
+        let isBookmarked = false;
+        let isLiked = false;
+
+                async function toggleBookmark(eventIdx) {            const event = staticEvents[eventIdx];                        if (!AuthManager.isLoggedIn()) {                showToast('Please login to bookmark events');                showSection('login');                return;            }            const bookmarkBtn = document.querySelectorAll('.event-bookmark-btn')[eventIdx];            const originalText = bookmarkBtn.textContent;            bookmarkBtn.textContent = 'Processing...';            bookmarkBtn.disabled = true;            try {                // For static events, we'll use the index as ID since they don't have real IDs                const eventId = event.id || (1000 + eventIdx); // Use a high number for static events                                const bookmarks = await TourismAPI.getUserBookmarks();                const isBookmarked = bookmarks.some(b => b.event_id === eventId);                if (isBookmarked) {                    await TourismAPI.removeBookmark(eventId);                    showToast('Event removed from bookmarks');                } else {                    await TourismAPI.addBookmark(eventId);                    showToast('Event bookmarked successfully');                }            } catch (error) {                console.error('Bookmark action failed:', error);                showToast('Bookmark action failed. Please try again.');            } finally {                bookmarkBtn.textContent = originalText;                bookmarkBtn.disabled = false;            }        }
+
+        function showToast(message) {
+            console.log('Showing toast:', message);
+            let toast = document.querySelector('.toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2200);
+        }
+
+                async function toggleLike(eventIdx) {            const event = staticEvents[eventIdx];                        if (!AuthManager.isLoggedIn()) {                showToast('Please login to like events');                showSection('login');                return;            }            const likeBtn = document.querySelectorAll('.event-like-btn')[eventIdx];            const originalText = likeBtn.textContent;            likeBtn.textContent = 'Processing...';            likeBtn.disabled = true;            try {                // For static events, we'll use the index as ID since they don't have real IDs                const eventId = event.id || (1000 + eventIdx); // Use a high number for static events                                const likes = await TourismAPI.getUserLikes();                const isLiked = likes.some(l => l.event_id === eventId);                if (isLiked) {                    await TourismAPI.removeLike(eventId);                    showToast('Event removed from likes');                } else {                    await TourismAPI.addLike(eventId);                    showToast('Event liked successfully');                }            } catch (error) {                console.error('Like action failed:', error);                showToast('Like action failed. Please try again.');            } finally {                likeBtn.textContent = originalText;                likeBtn.disabled = false;            }        }
+
+        // Use static events list instead of fetching from backend
+        const staticEvents = [
+          {
+            name: "Guns N' Roses Concert",
+            lat: 24.7136,
+            lng: 46.6753,
+            date: "2025-05-23",
+            description: "Guns N' Roses will kick off their 2025 tour in Riyadh.",
+            category: "concert",
+            image_url: "images/Guns N' Roses Concert.png"
+          },
+          {
+            name: "WWE Night of Champions",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-06-28",
+            description: "WWE's Night of Champions event featuring top wrestlers.",
+            category: "sports",
+            image_url: "images/WWE Night of Champions.png"
+          },
+          {
+            name: "Esports World Cup",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-07-08 to 2025-08-24",
+            description: "International esports tournament with 25 events.",
+            category: "sports",
+            image_url: "images/Esports World Cup.png"
+          },
+          {
+            name: "Foodex Saudi 2025",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-09-21 to 2025-09-24",
+            description: "International food and beverage trade exhibition.",
+            category: "expo",
+            image_url: "images/Foodex Saudi 2025.jpg"
+          },
+          {
+            name: "Saudi Agriculture 2025",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-10-20 to 2025-10-23",
+            description: "Exhibition on agriculture, food, and agro-industry.",
+            category: "expo",
+            image_url: "images/Saudi Agriculture 2025.jpg"
+          },
+          {
+            name: "Intersec Saudi Arabia Expo",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-09-30 to 2025-10-02",
+            description: "International security industry fair.",
+            category: "expo",
+            image_url: "images/Intersec Saudi Arabia Expo.jpg"
+          },
+          {
+            name: "Riyadh International Book Fair",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-03-01 to 2025-03-10",
+            description: "Annual book fair showcasing a wide range of publications.",
+            category: "festival",
+            image_url: "images/Riyadh International Book Fair.jpeg"
+          },
+          {
+            name: "Global Project Management Forum",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-05-17 to 2025-05-19",
+            description: "Forum for project management professionals in the MENA region.",
+            category: "conference",
+            image_url: "images/Global Project Management Forum.jpg"
+          },
+          {
+            name: "HR Summit and Expo KSA",
+            lat: 24.774265,
+            lng: 46.738586,
+            date: "2025-06-23 to 2025-06-24",
+            description: "Event focusing on human resource trends and strategies.",
+            category: "conference",
+            image_url: "images/HR Summit and Expo KSA.jpg"
+          }
+        ];
+
+        let selectMode = false;
+        function toggleEvents() {
+            const eventsContainer = document.getElementById('events-container');
+            const btn = document.getElementById('showAllEventsBtn');
+            const allBtns = document.querySelectorAll('.button-container button');
+            
+            if (!eventsContainer.classList.contains('open')) {
+                loadHomeEvents();
+                eventsContainer.classList.add('open');
+                btn.textContent = 'Hide Events';
+                allBtns.forEach(b => b.classList.add('active'));
+                setTimeout(() => {
+                    document.querySelectorAll('.event-card').forEach((card, i) => {
+                        card.classList.remove('animated');
+                        setTimeout(() => card.classList.add('animated'), i * 100);
+                    });
+                }, 10);
+            } else {
+                eventsContainer.classList.remove('open');
+                btn.textContent = 'Show All Events';
+                allBtns.forEach(b => b.classList.remove('active'));
+            }
+        }
+        function toggleSelectMode() {
+            selectMode = !selectMode;
+            updateSelectButtons();
+            if (!selectMode) {
+                // Remove all selected states when cancelling select mode
+                document.querySelectorAll('.event-card.selected').forEach(card => {
+                    card.classList.remove('selected');
+                    const selectBtn = card.querySelector('.event-select-btn');
+                    if (selectBtn) selectBtn.textContent = 'Select';
+                });
+            }
+        }
+        function updateSelectButtons() {
+            document.querySelectorAll('.event-select-btn').forEach(btn => {
+                btn.classList.toggle('visible', selectMode);
+            });
+            // Optionally, change the select event toggle button text
+            const selectBtn = document.getElementById('selectEventToggleBtn');
+            selectBtn.textContent = selectMode ? 'Cancel Select' : 'Select Event';
+        }
+        async function loadHomeEvents() {
+            const eventsContainer = document.getElementById('events-list');
+            if (!staticEvents.length) {
+                eventsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;">No events found.</div>';
+                return;
+            }
+            eventsContainer.innerHTML = staticEvents.map((event, idx) => `
+                <div class="event-card">
+                    <img src="${event.image_url || 'images/riyadh.jpg'}" alt="${event.name}" class="event-image">
+                    <div class="event-title">${event.name}</div>
+                    <div class="event-date">${event.date}</div>
+                    <div class="event-desc">${event.description}</div>
+                    <span class="event-category">${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button onclick="bookEvent(${idx})" class="event-book-btn">Book</button>
+                        <button onclick="toggleBookmark(${idx})" class="event-bookmark-btn">🔖 Bookmark</button>
+                        <button onclick="toggleLike(${idx})" class="event-like-btn">❤️ Like</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function bookEvent(eventIdx) {
+            const event = staticEvents[eventIdx];
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                showToast('Please login or register to book tickets');
+                showSection('login');
+                return;
+            }
+
+            // Parse the event date and create date options
+            const eventDate = new Date(event.date.split(' to ')[0]); // Get start date
+            const dateOptions = [];
+            
+            // Add event date and two days after
+            for (let i = 0; i < 3; i++) {
+                const date = new Date(eventDate);
+                date.setDate(eventDate.getDate() + i);
+                dateOptions.push({
+                    value: date.toISOString().split('T')[0],
+                    label: date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })
+                });
+            }
+
+            // Create booking modal
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: #111; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;">
+                    <h2 style="color: #fff; margin-bottom: 1rem;">Book Tickets for ${event.name}</h2>
+                    <p style="color: #ccc; margin-bottom: 1rem;">Welcome, ${currentUser.username}!</p>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Select Date:</label>
+                        <select id="ticketDate" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                            ${dateOptions.map(option => 
+                                `<option value="${option.value}">${option.label}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Select Time:</label>
+                        <select id="ticketTime" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                            <option value="16:00">4:00 PM</option>
+                            <option value="18:00">6:00 PM</option>
+                            <option value="20:00">8:00 PM</option>
+                            <option value="22:00">10:00 PM</option>
+                            <option value="00:00">12:00 AM</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #fff; display: block; margin-bottom: 0.5rem;">Number of Tickets:</label>
+                        <input type="number" id="ticketQuantity" min="1" max="5" value="1" style="width: 100%; padding: 0.5rem; background: #222; border: none; border-radius: 4px; color: #fff;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button onclick="confirmBooking(${eventIdx})" style="flex: 1; padding: 0.8rem; background: #00c3ad; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Confirm Booking</button>
+                        <button onclick="closeBookingModal()" style="flex: 1; padding: 0.8rem; background: #333; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        function closeBookingModal() {
+            const modal = document.querySelector('div[style*="position: fixed"]');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+                async function confirmBooking(eventIdx) {            const event = staticEvents[eventIdx];            const date = document.getElementById('ticketDate').value;            const time = document.getElementById('ticketTime').value;            const quantity = document.getElementById('ticketQuantity').value;                        if (!date) {                showToast('Please select a date');                return;            }            if (!AuthManager.isLoggedIn()) {                showToast('Please login to book events');                return;            }            try {                // For static events, we'll use the index as ID since they don't have real IDs                const eventId = event.id || (1000 + eventIdx); // Use a high number for static events                                const bookingData = {                    event_id: eventId,                    booking_date: date,                    booking_time: time,                    quantity: parseInt(quantity)                };                                await TourismAPI.createBooking(bookingData);                                closeBookingModal();                showToast('Booking confirmed successfully!');            } catch (error) {                console.error('Booking failed:', error);                showToast('Booking failed. Please try again.');            }        }
+
+                        // Add login form submission handler        document.getElementById('login-form').addEventListener('submit', async function(e) {            e.preventDefault();            console.log('Login form submitted');                        const email = document.getElementById('email').value;            const password = document.getElementById('password').value;                        console.log('Attempting login with:', { email });                        try {                const data = await TourismAPI.login(email, password);                                if (data.access_token) {                    showToast('Login successful!');                    updateNavbar();                    showSection('home');                } else {                    showError(data.message || 'Login failed');                }            } catch (error) {                console.error('Login error:', error);                showError('Login failed. Please try again.');            }        });
+
+                document.getElementById('signup-form').addEventListener('submit', async function(e) {            e.preventDefault();            console.log('Signup form submitted');                        const email = document.getElementById('signup-email').value;            const password = document.getElementById('signup-password').value;            const fullname = document.getElementById('fullname').value;                        console.log('Attempting registration with:', { email, fullname });                        try {                const userData = {                    email,                    password,                    fullname                };                                const data = await TourismAPI.register(userData);                                if (data.user || data.id) {                    showSuccess('Registration successful! Please login.');                    // Switch to login form                    document.getElementById('login-form').style.display = 'block';                    document.getElementById('signup-form').style.display = 'none';                } else {                    showError(data.message || 'Registration failed');                }            } catch (error) {                console.error('Registration error:', error);                showError('Registration failed. Please try again.');            }        });
+
+        function showError(message) {
+            console.log('Showing error:', message);
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            console.log('Showing success:', message);
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function selectEvent(eventIdx) {
+            const eventCard = document.querySelectorAll('.event-card')[eventIdx];
+            eventCard.classList.toggle('selected');
+            const selectBtn = eventCard.querySelector('.event-select-btn');
+            selectBtn.textContent = eventCard.classList.contains('selected') ? 'Selected' : 'Select';
+        }
+        // Load events when home section is shown
+        const origShowSection = showSection;
+        showSection = function(section) {
+            origShowSection(section);
+            if(section === 'home') loadHomeEvents();
+        }
+        // Also load on first page load if home is shown
+        window.addEventListener('DOMContentLoaded', () => {
+            updateNavbar();
+            if(document.getElementById('home-section').style.display !== 'none') loadHomeEvents();
+        });
+        function updateMapWithEvents() {
+            if (!map) return;
+            // Remove existing event markers
+            if (window.eventMarkers) {
+                window.eventMarkers.forEach(m => map.removeLayer(m));
+            }
+            window.eventMarkers = [];
+            staticEvents.forEach(event => {
+                if (event.lat && event.lng) {
+                    const marker = L.marker([event.lat, event.lng]).addTo(map).bindPopup(`<b>${event.name}</b><br>${event.date}`);
+                    window.eventMarkers.push(marker);
+                }
+            });
+        }
+                function updateNavbar() {            console.log('Updating navbar');                        const accountNav = document.getElementById('account-nav');            const welcomeText = document.getElementById('welcome-text');            const loginLink = document.querySelector('a[onclick="showSection(\'login\')"]')?.parentElement;            const registerLink = document.querySelector('a[onclick="showSection(\'register\')"]')?.parentElement;                        if (AuthManager && AuthManager.isLoggedIn()) {                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');                console.log('Current user:', currentUser);                                if (welcomeText) {                    welcomeText.textContent = `Welcome, ${currentUser.fullname || currentUser.email || 'User'}`;                }                if (accountNav) {                    accountNav.style.display = 'block';                }                if (loginLink) {                    loginLink.style.display = 'none';                }                if (registerLink) {                    registerLink.style.display = 'none';                }            } else {                if (accountNav) {                    accountNav.style.display = 'none';                }                if (loginLink) {                    loginLink.style.display = 'block';                }                if (registerLink) {                    registerLink.style.display = 'block';                }                if (welcomeText) {                    welcomeText.textContent = '';                }            }        }    </script></body></html> 

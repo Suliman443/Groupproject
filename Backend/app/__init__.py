@@ -1,10 +1,11 @@
 from flask import Flask, jsonify
 from .extensions import db, jwt
 # Import models from the models package
-from .models import User, Event, Comment, Listing
+from .models import User, Event, Comment, Listing, UserBookmark, UserLike, UserBooking
 from .routes.auth import auth_bp  # blueprint import for authentication
 from .routes.listings import bp as listings_bp
 from .routes.events import bp as events_bp
+from .routes.user import user_bp  # blueprint import for user preferences and bookings
 from .error_handlers import register_error_handlers
 from flask_cors import CORS
 
@@ -26,9 +27,10 @@ def create_app():
         db.create_all()
 
     # register the blueprints
-    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(listings_bp, url_prefix="/api")
     app.register_blueprint(events_bp, url_prefix="/api")
+    app.register_blueprint(user_bp, url_prefix="/api/user")
 
     @app.route("/")
     def home():
