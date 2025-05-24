@@ -359,16 +359,7 @@
                     <label for="event-description">Description</label>
                     <textarea id="event-description" rows="4" required></textarea>
                 </div>
-                <div class="form-group">
-                    <label for="event-category">Category</label>
-                    <select id="event-category" required>
-                        <option value="concert">Concert</option>
-                        <option value="sports">Sports</option>
-                        <option value="expo">Expo</option>
-                        <option value="festival">Festival</option>
-                        <option value="conference">Conference</option>
-                    </select>
-                </div>
+                
                 <div class="form-group">
                     <label for="event-image">Image URL</label>
                     <input type="text" id="event-image" required>
@@ -381,162 +372,86 @@
         </div>
     </div>
 
+    <script src="js/api.js"></script>
     <script>
+        let currentEvents = [];
+        let deletedEvents = [];
+
         // Check if organizer is logged in
-        window.onload = function() {
+        window.onload = async function() {
             const organizer = JSON.parse(localStorage.getItem('currentOrganizer'));
-            if (!organizer) {
+            if (!organizer || !window.AuthManager || !window.AuthManager.isLoggedIn()) {
                 window.location.href = 'organizer-login.html';
                 return;
             }
-            document.getElementById('organizer-name').textContent = `Welcome, ${organizer.name}`;
-            loadEvents();
-            updateStats();
-            showDeletedEvents();
+            
+            // Get fresh user data
+            try {
+                const userData = await window.TourismAPI.getUserProfile();
+                if (userData.user && userData.user.role === 'organizer') {
+                    document.getElementById('organizer-name').textContent = `Welcome, ${userData.user.fullname}`;
+                    loadEvents();
+                    updateStats();
+                } else {
+                    window.location.href = 'organizer-login.html';
+                }
+            } catch (error) {
+                console.error('Error getting user profile:', error);
+                window.location.href = 'organizer-login.html';
+            }
         };
 
         function logout() {
+            window.AuthManager.logout();
             localStorage.removeItem('currentOrganizer');
             window.location.href = 'organizer-login.html';
         }
 
-        function updateStats() {
-            // Get events from both localStorage and static events
-            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
-            const staticEvents = [
-                {
-                    name: "Guns N' Roses Concert",
-                    date: "2025-05-23",
-                    time: "20:00",
-                    location: "Riyadh",
-                    description: "Guns N' Roses will kick off their 2025 tour in Riyadh.",
-                    category: "concert",
-                    image_url: "images/Guns N' Roses Concert.png"
-                },
-                {
-                    name: "WWE Night of Champions",
-                    date: "2025-06-28",
-                    time: "19:00",
-                    location: "Riyadh",
-                    description: "WWE's Night of Champions event featuring top wrestlers.",
-                    category: "sports",
-                    image_url: "images/WWE Night of Champions.png"
-                },
-                {
-                    name: "Esports World Cup",
-                    date: "2025-07-08",
-                    time: "10:00",
-                    location: "Riyadh",
-                    description: "International esports tournament with 25 events.",
-                    category: "sports",
-                    image_url: "images/Esports World Cup.png"
-                },
-                {
-                    name: "Foodex Saudi 2025",
-                    date: "2025-09-21",
-                    time: "09:00",
-                    location: "Riyadh",
-                    description: "International food and beverage trade exhibition.",
-                    category: "expo",
-                    image_url: "images/Foodex Saudi 2025.jpg"
-                },
-                {
-                    name: "Saudi Agriculture 2025",
-                    date: "2025-10-20",
-                    time: "10:00",
-                    location: "Riyadh",
-                    description: "Exhibition on agriculture, food, and agro-industry.",
-                    category: "expo",
-                    image_url: "images/Saudi Agriculture 2025.jpg"
-                }
-            ];
-
-            // Combine both event lists and get total count
-            const allEvents = [...storedEvents, ...staticEvents];
-            const totalEvents = allEvents.length;
-
-            document.getElementById('total-events').textContent = totalEvents;
+        async function updateStats() {
+            try {
+                const response = await window.TourismAPI.request('/organizer/stats');
+                const stats = await response.json();
+                document.getElementById('total-events').textContent = stats.total_events;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
         }
 
-        function loadEvents() {
-            // Get events from both localStorage and static events
-            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
-            const staticEvents = [
-                {
-                    name: "Guns N' Roses Concert",
-                    date: "2025-05-23",
-                    time: "20:00",
-                    location: "Riyadh",
-                    description: "Guns N' Roses will kick off their 2025 tour in Riyadh.",
-                    category: "concert",
-                    image_url: "images/Guns N' Roses Concert.png"
-                },
-                {
-                    name: "WWE Night of Champions",
-                    date: "2025-06-28",
-                    time: "19:00",
-                    location: "Riyadh",
-                    description: "WWE's Night of Champions event featuring top wrestlers.",
-                    category: "sports",
-                    image_url: "images/WWE Night of Champions.png"
-                },
-                {
-                    name: "Esports World Cup",
-                    date: "2025-07-08",
-                    time: "10:00",
-                    location: "Riyadh",
-                    description: "International esports tournament with 25 events.",
-                    category: "sports",
-                    image_url: "images/Esports World Cup.png"
-                },
-                {
-                    name: "Foodex Saudi 2025",
-                    date: "2025-09-21",
-                    time: "09:00",
-                    location: "Riyadh",
-                    description: "International food and beverage trade exhibition.",
-                    category: "expo",
-                    image_url: "images/Foodex Saudi 2025.jpg"
-                },
-                {
-                    name: "Saudi Agriculture 2025",
-                    date: "2025-10-20",
-                    time: "10:00",
-                    location: "Riyadh",
-                    description: "Exhibition on agriculture, food, and agro-industry.",
-                    category: "expo",
-                    image_url: "images/Saudi Agriculture 2025.jpg"
+        async function loadEvents() {
+            try {
+                // Load organizer's events
+                const response = await window.TourismAPI.request('/organizer/events');
+                currentEvents = await response.json();
+                
+                const eventsGrid = document.getElementById('events-grid');
+                if (currentEvents.length === 0) {
+                    eventsGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #666;">No events yet. Click "Add New Event" to create your first event.</p>';
+                } else {
+                    eventsGrid.innerHTML = currentEvents.map((event) => `
+                        <div class="event-card">
+                            ${event.image_url ? `<img src="${event.image_url}" alt="${event.title}" class="event-image" onerror="this.src='images/riyadh.jpg'">` : ''}
+                            <h3>${event.title}</h3>
+                            <p>Date: ${new Date(event.date).toLocaleDateString()}</p>
+                            <p>Time: ${new Date(event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                            <p>Location: ${event.location}</p>
+                            <p style="color: #888; font-size: 0.9rem;">Created: ${new Date(event.created_at).toLocaleDateString()}</p>
+                            <div class="event-actions">
+                                <button class="edit-btn" onclick="editEvent(${event.id})">Edit</button>
+                                <button class="delete-btn" onclick="deleteEvent(${event.id})">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
                 }
-            ];
-
-            // Store static events in localStorage if not already there
-            if (!localStorage.getItem('staticEvents')) {
-                localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
+            } catch (error) {
+                console.error('Error loading events:', error);
+                document.getElementById('events-grid').innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #dc3545;">Error loading events. Please try again.</p>';
             }
-
-            // Get all events
-            const allEvents = [...storedEvents, ...staticEvents];
-            
-            const eventsGrid = document.getElementById('events-grid');
-            eventsGrid.innerHTML = allEvents.map((event, index) => `
-                <div class="event-card">
-                    <img src="${event.image_url}" alt="${event.name}" class="event-image">
-                    <h3>${event.name}</h3>
-                    <p>Date: ${event.date}</p>
-                    <p>Time: ${event.time}</p>
-                    <p>Location: ${event.location}</p>
-                    <p>Category: ${event.category}</p>
-                    <div class="event-actions">
-                        <button class="edit-btn" onclick="editEvent(${index})">Edit</button>
-                        <button class="delete-btn" onclick="deleteEvent(${index})">Delete</button>
-                    </div>
-                </div>
-            `).join('');
         }
 
         function showAddEventModal() {
             document.getElementById('modal-title').textContent = 'Add New Event';
             document.getElementById('event-form').reset();
+            delete document.getElementById('event-form').dataset.eventId;
             document.getElementById('event-modal').style.display = 'flex';
         }
 
@@ -544,74 +459,72 @@
             document.getElementById('event-modal').style.display = 'none';
         }
 
-        function editEvent(index) {
-            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
-            const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
-            const allEvents = [...storedEvents, ...staticEvents];
-            const event = allEvents[index];
+        function editEvent(eventId) {
+            const event = currentEvents.find(e => e.id === eventId);
+            if (!event) return;
             
             document.getElementById('modal-title').textContent = 'Edit Event';
-            document.getElementById('event-name').value = event.name;
-            document.getElementById('event-date').value = event.date;
-            document.getElementById('event-time').value = event.time;
+            document.getElementById('event-name').value = event.title;
+            
+            // Parse date and time from ISO string
+            const eventDate = new Date(event.date);
+            document.getElementById('event-date').value = eventDate.toISOString().split('T')[0];
+            document.getElementById('event-time').value = eventDate.toTimeString().slice(0, 5);
+            
             document.getElementById('event-location').value = event.location;
-            document.getElementById('event-description').value = event.description;
-            document.getElementById('event-category').value = event.category;
-            document.getElementById('event-image').value = event.image_url;
+            document.getElementById('event-description').value = event.description || '';
+            document.getElementById('event-image').value = event.image_url || '';
             
             document.getElementById('event-modal').style.display = 'flex';
-            document.getElementById('event-form').dataset.editIndex = index;
-            document.getElementById('event-form').dataset.isStatic = index >= storedEvents.length;
+            document.getElementById('event-form').dataset.eventId = eventId;
         }
 
-        function deleteEvent(index) {
-            if (confirm('Are you sure you want to delete this event?')) {
-                const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
-                const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
-                const allEvents = [...storedEvents, ...staticEvents];
-                const eventToDelete = allEvents[index];
-                
-                // Store the deleted event with timestamp
-                const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
-                deletedEvents.push({
-                    ...eventToDelete,
-                    deletedAt: new Date().toISOString(),
-                    wasStatic: index >= storedEvents.length,
-                    originalIndex: index
+        async function deleteEvent(eventId) {
+            if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await window.TourismAPI.request(`/events/${eventId}`, {
+                    method: 'DELETE'
                 });
-                localStorage.setItem('deletedEvents', JSON.stringify(deletedEvents));
                 
-                if (index < storedEvents.length) {
-                    // Delete from stored events
-                    storedEvents.splice(index, 1);
-                    localStorage.setItem('events', JSON.stringify(storedEvents));
+                if (response.ok) {
+                    // Store deleted event info temporarily for UI feedback
+                    const deletedEvent = currentEvents.find(e => e.id === eventId);
+                    if (deletedEvent) {
+                        deletedEvents.push({
+                            ...deletedEvent,
+                            deletedAt: new Date().toISOString()
+                        });
+                    }
+                    
+                    alert('Event deleted successfully!');
+                    loadEvents();
+                    updateStats();
+                    showDeletedEvents();
                 } else {
-                    // Delete from static events
-                    const staticIndex = index - storedEvents.length;
-                    staticEvents.splice(staticIndex, 1);
-                    localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
+                    const error = await response.json();
+                    alert(error.error || 'Failed to delete event');
                 }
-                
-                loadEvents();
-                updateStats();
-                showDeletedEvents();
+            } catch (error) {
+                console.error('Error deleting event:', error);
+                alert('Failed to delete event. Please try again.');
             }
         }
 
         function showDeletedEvents() {
-            const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
             const deletedEventsList = document.getElementById('deleted-events-list');
             const showDeletedBtn = document.getElementById('show-deleted-btn');
             
             if (deletedEvents.length > 0) {
                 showDeletedBtn.style.display = 'block';
-                deletedEventsList.innerHTML = deletedEvents.map((event, index) => `
+                deletedEventsList.innerHTML = deletedEvents.map((event) => `
                     <div class="deleted-event">
                         <div class="deleted-event-info">
-                            <h4>${event.name}</h4>
+                            <h4>${event.title}</h4>
                             <p>Deleted on: ${new Date(event.deletedAt).toLocaleString()}</p>
                         </div>
-                        <button class="undo-btn" onclick="undoDelete(${index})">Undo</button>
                     </div>
                 `).join('');
             } else {
@@ -620,36 +533,9 @@
             }
         }
 
-        function undoDelete(index) {
-            const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
-            const eventToRestore = deletedEvents[index];
-            
-            if (eventToRestore.wasStatic) {
-                // Restore to static events
-                const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
-                staticEvents.push(eventToRestore);
-                localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
-            } else {
-                // Restore to stored events
-                const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
-                storedEvents.push(eventToRestore);
-                localStorage.setItem('events', JSON.stringify(storedEvents));
-            }
-            
-            // Remove from deleted events
-            deletedEvents.splice(index, 1);
-            localStorage.setItem('deletedEvents', JSON.stringify(deletedEvents));
-            
-            loadEvents();
-            updateStats();
-            showDeletedEvents();
-        }
-
         function clearAllDeletedEvents() {
-            if (confirm('Are you sure you want to permanently delete all removed events? This action cannot be undone.')) {
-                localStorage.removeItem('deletedEvents');
-                showDeletedEvents();
-            }
+            deletedEvents = [];
+            showDeletedEvents();
         }
 
         function toggleDeletedEvents() {
@@ -667,45 +553,63 @@
             }
         }
 
-        document.getElementById('event-form').addEventListener('submit', function(e) {
+        document.getElementById('event-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const event = {
-                name: document.getElementById('event-name').value,
-                date: document.getElementById('event-date').value,
-                time: document.getElementById('event-time').value,
+            const eventDate = document.getElementById('event-date').value;
+            const eventTime = document.getElementById('event-time').value;
+            const dateTime = new Date(`${eventDate}T${eventTime}:00`);
+            
+            const eventData = {
+                title: document.getElementById('event-name').value,
+                date: dateTime.toISOString(),
                 location: document.getElementById('event-location').value,
                 description: document.getElementById('event-description').value,
-                category: document.getElementById('event-category').value,
-                image_url: document.getElementById('event-image').value
+                image_url: document.getElementById('event-image').value || null,
+                latitude: 24.7136, // Default to Riyadh coordinates
+                longitude: 46.6753
             };
 
-            const storedEvents = JSON.parse(localStorage.getItem('events') || '[]');
-            const staticEvents = JSON.parse(localStorage.getItem('staticEvents') || '[]');
-            const editIndex = this.dataset.editIndex;
-            const isStatic = this.dataset.isStatic === 'true';
-
-            if (editIndex !== undefined) {
-                if (isStatic) {
-                    // Update static event
-                    const staticIndex = editIndex - storedEvents.length;
-                    staticEvents[staticIndex] = event;
-                    localStorage.setItem('staticEvents', JSON.stringify(staticEvents));
+            const eventId = this.dataset.eventId;
+            
+            try {
+                let response;
+                if (eventId) {
+                    // Update existing event
+                    response = await window.TourismAPI.request(`/events/${eventId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(eventData)
+                    });
                 } else {
-                    // Update stored event
-                    storedEvents[editIndex] = event;
-                    localStorage.setItem('events', JSON.stringify(storedEvents));
+                    // Create new event
+                    response = await window.TourismAPI.request('/events', {
+                        method: 'POST',
+                        body: JSON.stringify(eventData)
+                    });
                 }
-            } else {
-                // Add new event
-                storedEvents.push(event);
-                localStorage.setItem('events', JSON.stringify(storedEvents));
+                
+                if (response.ok) {
+                    alert(eventId ? 'Event updated successfully!' : 'Event created successfully!');
+                    closeModal();
+                    loadEvents();
+                    updateStats();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to save event');
+                }
+            } catch (error) {
+                console.error('Error saving event:', error);
+                alert('Failed to save event. Please try again.');
             }
-
-            closeModal();
-            loadEvents();
-            updateStats();
         });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('event-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
     </script>
 </body>
 </html> 

@@ -20,27 +20,70 @@ def signup():
     if existing_user:
         return jsonify({'message': 'Email already registered'}), 400
         
+    # Determine role (default to 'user', but allow 'organizer' if specified)
+    role = data.get('role', 'user')
+    if role not in ['user', 'organizer']:
+        role = 'user'
+        
     hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
     new_user = User(
         email=data['email'],
         hashed_password=hashed_password,
         fullname=data['fullname'],
-        role='user'
+        role=role
     )
     
     try:
         db.session.add(new_user)
         db.session.commit()
         return jsonify({
-            'message': 'User created successfully',
+            'message': f'{role.capitalize()} created successfully',
             'user': {
                 'email': new_user.email,
-                'fullname': new_user.fullname
+                'fullname': new_user.fullname,
+                'role': new_user.role
             }
         }), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': 'Error creating user'}), 500
+
+@auth_bp.route('/organizer/signup', methods=['POST'])
+def organizer_signup():
+    """Dedicated endpoint for organizer registration"""
+    data = request.get_json()
+    
+    # Validate required fields
+    if not all(k in data for k in ['email', 'password', 'fullname']):
+        return jsonify({'message': 'Missing required fields'}), 400
+    
+    # Check if user already exists
+    existing_user = User.query.filter_by(email=data['email']).first()
+    if existing_user:
+        return jsonify({'message': 'Email already registered'}), 400
+        
+    hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
+    new_organizer = User(
+        email=data['email'],
+        hashed_password=hashed_password,
+        fullname=data['fullname'],
+        role='organizer'
+    )
+    
+    try:
+        db.session.add(new_organizer)
+        db.session.commit()
+        return jsonify({
+            'message': 'Organizer account created successfully',
+            'user': {
+                'email': new_organizer.email,
+                'fullname': new_organizer.fullname,
+                'role': new_organizer.role
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error creating organizer account'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():

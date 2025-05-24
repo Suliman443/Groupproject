@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.models.event import Event
 from app.models.comment import Comment
 from app.extensions import db
-from app.auth_utils import token_required
+from app.auth_utils import token_required, organizer_required
 from datetime import datetime
 
 bp = Blueprint("events", __name__)
@@ -241,3 +241,34 @@ def delete_event_comment(current_user, event_id, comment_id):
     db.session.delete(comment)
     db.session.commit()
     return '', 204
+
+# Organizer-specific endpoints
+
+@bp.route("/organizer/events", methods=["GET"])
+@organizer_required
+def get_organizer_events(current_user):
+    """Get all events created by the current organizer"""
+    events = Event.query.filter_by(created_by=current_user.id).all()
+    return jsonify([{
+        'id': event.id,
+        'title': event.title,
+        'description': event.description,
+        'location': event.location,
+        'latitude': event.latitude,
+        'longitude': event.longitude,
+        'date': event.date.isoformat(),
+        'image_url': event.image_url,
+        'created_by': event.created_by,
+        'created_at': event.created_at.isoformat(),
+        'updated_at': event.updated_at.isoformat()
+    } for event in events])
+
+@bp.route("/organizer/stats", methods=["GET"])
+@organizer_required
+def get_organizer_stats(current_user):
+    """Get statistics for the organizer's events"""
+    total_events = Event.query.filter_by(created_by=current_user.id).count()
+    return jsonify({
+        'total_events': total_events,
+        'organizer_name': current_user.fullname
+    })

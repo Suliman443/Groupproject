@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organizer Login</title>
+    <title>Organizer Sign Up</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -43,7 +43,7 @@
             align-items: center;
             padding: 2rem;
         }
-        .login-box {
+        .signup-box {
             background-color: #111;
             padding: 3rem 3.5rem;
             border-radius: 12px;
@@ -53,22 +53,23 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             color: #fff;
         }
-        .login-box:hover {
+        .signup-box:hover {
             transform: scale(1.02);
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
         }
-        .login-box h2 {
+        .signup-box h2 {
             text-align: center;
             margin-bottom: 1.5rem;
             color: #fff;
         }
-        .login-box label {
+        .signup-box label {
             display: block;
             margin-bottom: 0.5rem;
             color: #ddd;
         }
-        .login-box input[type="text"],
-        .login-box input[type="password"] {
+        .signup-box input[type="text"],
+        .signup-box input[type="email"],
+        .signup-box input[type="password"] {
             width: 100%;
             padding: 0.7rem;
             margin-bottom: 1rem;
@@ -78,10 +79,10 @@
             color: #fff;
             font-size: 1rem;
         }
-        .login-box button {
+        .signup-box button {
             width: 100%;
             padding: 0.8rem;
-            background-color: #fff;
+            background-color: #00c3ad;
             color: #000;
             border: none;
             border-radius: 6px;
@@ -89,8 +90,8 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-        .login-box button:hover {
-            background-color: #ccc;
+        .signup-box button:hover {
+            background-color: #00a3ad;
         }
         .back-link {
             text-align: center;
@@ -113,6 +114,15 @@
             padding: 0.5rem;
             border-radius: 4px;
         }
+        .success-message {
+            color: #28a745;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+            background: rgba(40, 167, 69, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
         .footer {
             background: #000;
             color: #fff;
@@ -127,19 +137,24 @@
     </nav>
 
     <div class="content">
-        <div class="login-box">
-            <h2>Organizer Login</h2>
-            <form id="organizer-login-form">
-                <label for="organizer-id">Email</label>
-                <input type="email" id="organizer-id" placeholder="Enter your email" required>
-                <label for="organizer-password">Password</label>
-                <input type="password" id="organizer-password" placeholder="Enter your password" required>
-                <button type="submit" class="login-btn">Login</button>
+        <div class="signup-box">
+            <h2>Create Organizer Account</h2>
+            <form id="organizer-signup-form">
+                <label for="fullname">Full Name</label>
+                <input type="text" id="fullname" placeholder="Enter your full name" required>
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" placeholder="Confirm your password" required>
+                <button type="submit" class="signup-btn">Sign Up as Organizer</button>
                 <div class="error-message" id="error-message"></div>
+                <div class="success-message" id="success-message"></div>
             </form>
             <div class="back-link">
-                <p>Don't have an account? <a href="organizer-signup.html">Sign up as organizer</a></p>
-                <p><a href="index.html">Back to regular login</a></p>
+                <p>Already have an account? <a href="organizer-login.html">Login here</a></p>
+                <p>Not an organizer? <a href="index.html">Regular user login</a></p>
             </div>
         </div>
     </div>
@@ -152,38 +167,62 @@
 
     <script src="js/api.js"></script>
     <script>
-        document.getElementById('organizer-login-form').addEventListener('submit', async function(e) {
+        document.getElementById('organizer-signup-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('organizer-id').value;
-            const password = document.getElementById('organizer-password').value;
+            const fullname = document.getElementById('fullname').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
             const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            
+            // Hide previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'Passwords do not match';
+                return;
+            }
             
             try {
-                // Use TourismAPI to login
-                const data = await window.TourismAPI.login(email, password);
+                // Use TourismAPI to register as organizer
+                const response = await fetch(`${window.TourismAPI.BASE_URL}/auth/organizer/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fullname: fullname,
+                        email: email,
+                        password: password
+                    })
+                });
                 
-                if (data.access_token && data.user && data.user.role === 'organizer') {
-                    // Store organizer info in AuthManager
-                    localStorage.setItem('currentOrganizer', JSON.stringify({
-                        id: data.user.id,
-                        name: data.user.fullname,
-                        email: data.user.email
-                    }));
+                const data = await response.json();
+                
+                if (response.ok) {
+                    successMessage.style.display = 'block';
+                    successMessage.textContent = 'Organizer account created successfully! Redirecting to login...';
                     
-                    // Redirect to dashboard
-                    window.location.href = 'organizer-dashboard.html';
-                } else if (data.access_token && data.user.role !== 'organizer') {
-                    errorMessage.style.display = 'block';
-                    errorMessage.textContent = 'This account is not an organizer account';
+                    // Clear form
+                    document.getElementById('organizer-signup-form').reset();
+                    
+                    // Redirect to login after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = 'organizer-login.html';
+                    }, 2000);
                 } else {
                     errorMessage.style.display = 'block';
-                    errorMessage.textContent = data.message || 'Invalid credentials';
+                    errorMessage.textContent = data.message || 'Registration failed';
                 }
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('Registration error:', error);
                 errorMessage.style.display = 'block';
-                errorMessage.textContent = 'Login failed. Please try again.';
+                errorMessage.textContent = 'Registration failed. Please try again.';
             }
         });
     </script>
