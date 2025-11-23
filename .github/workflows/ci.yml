@@ -1,33 +1,46 @@
-name: CI Automated Tests
+name: CI
 
 on:
   push:
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      # Step 2: Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Install test dependencies
-      run: |
-        pip install -r requirements_test.txt
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
 
-    - name: Run tests with coverage + junit report
-      run: |
-        mkdir -p reports
-        pytest tests --junitxml=reports/results.xml --cov=. --cov-report=xml --cov-report=html:reports/html
+      # Step 4: Run tests
+      - name: Run tests
+        run: npm test
 
-    - name: Upload reports (JUnit + Coverage HTML)
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-reports
-        path: reports
+      # Optional: Linting (if you have ESLint)
+      - name: Run ESLint
+        if: success()
+        run: npm run lint
+
+      # Optional: SonarCloud scan (if you plan to use it)
+      # Make sure you have SONAR_TOKEN in GitHub secrets
+      - name: SonarCloud Scan
+        if: success()
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          projectKey: YOUR_PROJECT_KEY
+          organization: YOUR_ORG
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
