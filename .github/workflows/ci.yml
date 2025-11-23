@@ -11,15 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js
+      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 18  # Match your local dev version
 
       # Step 3: Install dependencies
       - name: Install dependencies
@@ -29,13 +29,12 @@ jobs:
       - name: Run tests
         run: npm test
 
-      # Optional: Linting (if you have ESLint)
+      # Optional: Linting (if applicable)
       - name: Run ESLint
         if: success()
         run: npm run lint
 
-      # Optional: SonarCloud scan (if you plan to use it)
-      # Make sure you have SONAR_TOKEN in GitHub secrets
+      # Optional: SonarCloud scan
       - name: SonarCloud Scan
         if: success()
         uses: SonarSource/sonarcloud-github-action@v2
