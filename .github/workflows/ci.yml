@@ -23,7 +23,7 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest tests/ --html=reports/report.html --junitxml=reports/junit.xml
+       pytest --html=reports/report.html --junitxml=reports/junit.xml
 
     - name: Upload test reports
       uses: actions/upload-artifact@v4
