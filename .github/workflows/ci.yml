@@ -45,6 +45,27 @@ jobs:
           python -m pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      # 5.1 Install backend requirements and start backend (if Backend exists)
+      - name: Start Backend server
+        run: |
+          if [ -d Backend ]; then
+            echo "Installing backend requirements..."
+            if [ -f Backend/requirements.txt ]; then python -m pip install -r Backend/requirements.txt; fi
+            echo "Starting backend in background..."
+            nohup python Backend/run.py > /tmp/backend.log 2>&1 &
+            # wait for localhost:5000 to accept connections (up to 30s)
+            if ! (for i in $(seq 1 30); do (echo >/dev/tcp/127.0.0.1/5000) >/dev/null 2>&1 && echo "backend-up" && exit 0 || sleep 1; done; exit 1); then
+              echo "backend did not start in 30s"
+              echo "Backend log (last 200 lines):"
+              tail -n 200 /tmp/backend.log || true
+              exit 1
+            fi
+            echo "Backend log (last 50 lines):"
+            tail -n 50 /tmp/backend.log || true
+          else
+            echo "No Backend/ directory found; skipping backend startup."
+          fi
+
       # 6. Run Node.js tests (only when package.json exists)
       - name: Run Node tests
         run: |
