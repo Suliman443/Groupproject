@@ -11,30 +11,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository
+      # 1. Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Node.js
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18  # Match your local dev version
+          node-version: 18
 
-      # Step 3: Install dependencies
-      - name: Install dependencies
+      # 3. Install Node.js dependencies
+      - name: Install Node dependencies
         run: npm install
 
-      # Step 4: Run tests
-      - name: Run tests
+      # 4. Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 5. Install Python dependencies
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # 6. Run Node.js tests
+      - name: Run Node tests
         run: npm test
 
-      # Optional: Linting (if applicable)
-      - name: Run ESLint
-        if: success()
-        run: npm run lint
+      # 7. Run Python tests
+      - name: Run Python tests
+        run: |
+          if [ -d tests ]; then pytest tests/; fi
 
-      # Optional: SonarCloud scan
+      # 8. Optional: SonarCloud scan
       - name: SonarCloud Scan
         if: success()
         uses: SonarSource/sonarcloud-github-action@v2
