@@ -15,7 +15,10 @@ import time
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import request, jsonify, g, current_app
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token, jwt_required,
+    get_jwt_identity, get_jwt, verify_jwt_in_request
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import User
 from app.extensions import db
@@ -126,24 +129,21 @@ class EnhancedAuthManager:
             )
     
     def revoke_user_tokens(self, user_id):
-        """Revoke all tokens for a specific user"""
+        """Revoke all tokens for a specific user using unified blocklist mechanism"""
         try:
-            if security_manager.redis_client:
-                # Mark all sessions as revoked
-                pattern = f"session:{user_id}:*"
-                keys = security_manager.redis_client.keys(pattern)
-                
-                for key in keys:
-                    session_data = security_manager.redis_client.get(key)
-                    if session_data:
-                        # Update session data to mark as revoked
-                        updated_data = eval(session_data)  # In production, use proper JSON parsing
-                        updated_data['is_revoked'] = True
-                        security_manager.redis_client.setex(key, 300, str(updated_data))  # Keep for 5 minutes
-                
-                security_manager.log_security_event('user_tokens_revoked', user_id)
-                return True
-                
+            # Use SecurityManager's unified token revocation
+            success = security_manager.revoke_all_user_tokens(user_id)
+
+            if success:
+                # Also clean up session info if Redis is available
+                if security_manager.redis_client:
+                    pattern = f"session:{user_id}:*"
+                    keys = security_manager.redis_client.keys(pattern)
+                    for key in keys:
+                        security_manager.redis_client.delete(key)
+
+            return success
+
         except Exception as e:
             security_manager.log_security_event('token_revocation_error', user_id, {'error': str(e)})
             return False
@@ -262,116 +262,146 @@ enhanced_auth = EnhancedAuthManager()
 
 
 def enhanced_login_required(f):
-    """Enhanced login decorator with additional security checks"""
+    """Enhanced login decorator with full security checks using unified validation"""
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
             verify_jwt_in_request()
             current_user_id = get_jwt_identity()
             jwt_claims = get_jwt()
-            
+
             # Get user
             current_user = User.query.get(current_user_id)
             if not current_user:
                 security_manager.log_security_event('invalid_token_user_not_found', current_user_id)
                 return jsonify({'message': INVALID_TOKEN_USER_NOT_FOUND_MSG}), 401
-            
-            # Validate token security
-            if not enhanced_auth.validate_token_security(current_user_id, jwt_claims):
-                return jsonify({'message': 'Token security validation failed'}), 401
-            
+
+            # Use unified session security validation (includes blocklist, IP/device binding, timeout)
+            is_valid, error_message = security_manager.validate_session_security(
+                current_user_id,
+                jwt_claims,
+                session_timeout=enhanced_auth.session_timeout
+            )
+
+            if not is_valid:
+                return jsonify({'message': error_message}), 401
+
             # Store current user in Flask g
             g.current_user = current_user
-            
+
             return f(*args, **kwargs)
-            
+
         except Exception as e:
             security_manager.log_security_event('enhanced_auth_error', details={'error': str(e)})
             return jsonify({'message': AUTHENTICATION_FAILED_MSG}), 401
-    
+
     return decorated
 
 
 def admin_required_enhanced(f):
-    """Enhanced admin decorator with security logging"""
+    """Enhanced admin decorator with full security validation"""
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
             verify_jwt_in_request()
             current_user_id = get_jwt_identity()
+            jwt_claims = get_jwt()
             current_user = User.query.get(current_user_id)
-            
+
             if not current_user:
                 security_manager.log_security_event('admin_access_user_not_found', current_user_id)
                 return jsonify({'message': INVALID_TOKEN_USER_NOT_FOUND_MSG}), 401
-            
+
+            # Use unified session security validation
+            is_valid, error_message = security_manager.validate_session_security(
+                current_user_id,
+                jwt_claims,
+                session_timeout=enhanced_auth.session_timeout
+            )
+
+            if not is_valid:
+                return jsonify({'message': error_message}), 401
+
             if current_user.role != 'admin':
                 security_manager.log_security_event('unauthorized_admin_access', current_user_id, {
                     'user_role': current_user.role,
                     'endpoint': request.endpoint
                 })
                 return jsonify({'message': 'Admin access required'}), 403
-            
+
             g.current_user = current_user
             return f(*args, **kwargs)
-            
+
         except Exception as e:
             security_manager.log_security_event('admin_validation_error', details={'error': str(e)})
             return jsonify({'message': AUTHENTICATION_FAILED_MSG}), 401
-    
+
     return decorated
 
 
 def organizer_required_enhanced(f):
-    """Enhanced organizer decorator with security logging"""
+    """Enhanced organizer decorator with full security validation"""
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
             verify_jwt_in_request()
             current_user_id = get_jwt_identity()
+            jwt_claims = get_jwt()
             current_user = User.query.get(current_user_id)
-            
+
             if not current_user:
                 security_manager.log_security_event('organizer_access_user_not_found', current_user_id)
                 return jsonify({'message': INVALID_TOKEN_USER_NOT_FOUND_MSG}), 401
-            
+
+            # Use unified session security validation
+            is_valid, error_message = security_manager.validate_session_security(
+                current_user_id,
+                jwt_claims,
+                session_timeout=enhanced_auth.session_timeout
+            )
+
+            if not is_valid:
+                return jsonify({'message': error_message}), 401
+
             if current_user.role not in ['organizer', 'admin']:
                 security_manager.log_security_event('unauthorized_organizer_access', current_user_id, {
                     'user_role': current_user.role,
                     'endpoint': request.endpoint
                 })
                 return jsonify({'message': 'Organizer access required'}), 403
-            
+
             g.current_user = current_user
             return f(*args, **kwargs)
-            
+
         except Exception as e:
             security_manager.log_security_event('organizer_validation_error', details={'error': str(e)})
             return jsonify({'message': AUTHENTICATION_FAILED_MSG}), 401
-    
+
     return decorated
 
 
 def session_timeout_required(f):
-    """Decorator to enforce session timeout"""
+    """Decorator to enforce session timeout (uses unified validation)"""
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
             current_user_id = get_jwt_identity()
             jwt_claims = get_jwt()
-            
-            # Check session timeout
-            login_time = jwt_claims.get('login_time', 0)
-            current_time = int(time.time())
-            
-            if current_time - login_time > enhanced_auth.session_timeout:
-                security_manager.log_security_event('session_timeout', current_user_id)
-                return jsonify({'message': 'Session expired'}), 401
-            
+
+            # Use unified session security validation (timeout is checked within)
+            is_valid, error_message = security_manager.validate_session_security(
+                current_user_id,
+                jwt_claims,
+                session_timeout=enhanced_auth.session_timeout
+            )
+
+            if not is_valid:
+                return jsonify({'message': error_message}), 401
+
             return f(*args, **kwargs)
-            
+
         except Exception as e:
             security_manager.log_security_event('session_timeout_error', details={'error': str(e)})
             return jsonify({'message': 'Session validation failed'}), 401
-    
+
     return decorated

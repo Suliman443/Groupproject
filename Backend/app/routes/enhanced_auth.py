@@ -3,12 +3,13 @@ Enhanced Authentication Routes
 Implements additional security layers for user authentication
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from app.models import User
 from app.extensions import db
-from app.enhanced_auth import enhanced_auth
-from app.security import security_manager, enhanced_login_required, rate_limit_by_user, audit_log_required
+from app.enhanced_auth import enhanced_auth, enhanced_login_required
+from app.security import security_manager, rate_limit_by_user, audit_log_required
+from app.auth_utils import revoke_all_tokens_for_user
 
 # Create enhanced auth blueprint
 enhanced_auth_bp = Blueprint('enhanced_auth', __name__)

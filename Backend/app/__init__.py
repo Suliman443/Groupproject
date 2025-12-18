@@ -7,18 +7,23 @@ from .routes.listings import bp as listings_bp
 from .routes.events import bp as events_bp
 from .routes.user import user_bp  # blueprint import for user preferences and bookings
 from .error_handlers import register_error_handlers
+from .security import init_security_middleware, security_manager
 from flask_cors import CORS
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
-    
+
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
     CORS(app)  # Enable CORS for all routes
-    
+
+    # Initialize security middleware (input sanitization, security headers, rate limiting)
+    init_security_middleware(app)
+    security_manager.init_app(app)
+
     # Register error handlers
     register_error_handlers(app)
 

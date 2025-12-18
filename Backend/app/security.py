@@ -185,14 +185,241 @@ class SecurityManager:
             'user_agent': request.headers.get('User-Agent', ''),
             'details': details or {}
         }
-        
+
         # In production, this should be logged to a secure audit system
         print(f"SECURITY_EVENT: {log_entry}")
-        
+
         # Store in Redis for temporary audit trail
         if self.redis_client:
             audit_key = f"audit_log:{int(time.time())}"
             self.redis_client.setex(audit_key, 86400, str(log_entry))  # Keep for 24 hours
+
+    def sanitize_input(self, data):
+        """Sanitize input data to prevent injection attacks.
+        Recursively handles nested dictionaries and arrays.
+        """
+        if isinstance(data, dict):
+            return {key: self.sanitize_input(value) for key, value in data.items()}
+        elif isinstance(data, list):
+            return [self.sanitize_input(item) for item in data]
+        elif isinstance(data, str):
+            # Remove potentially dangerous characters for XSS and injection
+            dangerous_chars = ['<', '>', '"', "'", '&', ';', '(', ')', '|', '`']
+            for char in dangerous_chars:
+                data = data.replace(char, '')
+            return data.strip()
+        else:
+            # Return non-string types (int, float, bool, None) as-is
+            return data
+
+    # =========================================================================
+    # Token Blocklist Management (for session management / token revocation)
+    # =========================================================================
+
+    def add_token_to_blocklist(self, jti, expires_in=None):
+        """Add a token's JTI to the blocklist for revocation.
+
+        Args:
+            jti: The JWT ID (jti claim) of the token to revoke
+            expires_in: TTL in seconds (default: 24 hours)
+        """
+        if not jti:
+            return False
+
+        if expires_in is None:
+            expires_in = 86400  # 24 hours default
+
+        try:
+            if self.redis_client:
+                # Store in Redis with TTL
+                blocklist_key = f"token_blocklist:{jti}"
+                self.redis_client.setex(blocklist_key, expires_in, "revoked")
+                return True
+            else:
+                # Fallback: Use in-memory blocklist (not recommended for production)
+                if not hasattr(self, '_memory_blocklist'):
+                    self._memory_blocklist = {}
+                self._memory_blocklist[jti] = time.time() + expires_in
+                return True
+        except Exception as e:
+            self.log_security_event('token_blocklist_error', details={'error': str(e), 'jti': jti})
+            return False
+
+    def is_token_blocklisted(self, jti):
+        """Check if a token's JTI is in the blocklist.
+
+        Args:
+            jti: The JWT ID (jti claim) to check
+
+        Returns:
+            bool: True if token is blocklisted/revoked
+        """
+        if not jti:
+            return False
+
+        try:
+            if self.redis_client:
+                blocklist_key = f"token_blocklist:{jti}"
+                return self.redis_client.exists(blocklist_key) > 0
+            else:
+                # Fallback: Check in-memory blocklist
+                if hasattr(self, '_memory_blocklist'):
+                    expiry = self._memory_blocklist.get(jti, 0)
+                    if expiry > time.time():
+                        return True
+                    elif jti in self._memory_blocklist:
+                        # Clean up expired entry
+                        del self._memory_blocklist[jti]
+                return False
+        except Exception as e:
+            self.log_security_event('token_blocklist_check_error', details={'error': str(e)})
+            return False  # Fail open to avoid locking out users on Redis errors
+
+    def revoke_all_user_tokens(self, user_id, expires_in=None):
+        """Revoke all tokens for a specific user by storing a revocation timestamp.
+
+        All tokens issued before this timestamp will be considered invalid.
+
+        Args:
+            user_id: The user ID whose tokens should be revoked
+            expires_in: TTL in seconds (default: 24 hours)
+        """
+        if not user_id:
+            return False
+
+        if expires_in is None:
+            expires_in = 86400  # 24 hours default
+
+        try:
+            revocation_time = int(time.time())
+
+            if self.redis_client:
+                revocation_key = f"user_token_revocation:{user_id}"
+                self.redis_client.setex(revocation_key, expires_in, str(revocation_time))
+            else:
+                # Fallback: Use in-memory storage
+                if not hasattr(self, '_user_revocations'):
+                    self._user_revocations = {}
+                self._user_revocations[user_id] = {
+                    'time': revocation_time,
+                    'expires': time.time() + expires_in
+                }
+
+            self.log_security_event('user_tokens_revoked', user_id)
+            return True
+
+        except Exception as e:
+            self.log_security_event('user_token_revocation_error', user_id, {'error': str(e)})
+            return False
+
+    def is_token_revoked_for_user(self, user_id, token_issued_at):
+        """Check if a token was issued before the user's revocation timestamp.
+
+        Args:
+            user_id: The user ID to check
+            token_issued_at: The token's 'iat' claim (issued at timestamp)
+
+        Returns:
+            bool: True if token was issued before revocation (and should be rejected)
+        """
+        if not user_id or not token_issued_at:
+            return False
+
+        try:
+            if self.redis_client:
+                revocation_key = f"user_token_revocation:{user_id}"
+                revocation_time = self.redis_client.get(revocation_key)
+                if revocation_time:
+                    return int(token_issued_at) < int(revocation_time)
+            else:
+                # Fallback: Check in-memory storage
+                if hasattr(self, '_user_revocations'):
+                    revocation = self._user_revocations.get(user_id)
+                    if revocation and revocation['expires'] > time.time():
+                        return int(token_issued_at) < revocation['time']
+
+            return False
+
+        except Exception as e:
+            self.log_security_event('token_revocation_check_error', user_id, {'error': str(e)})
+            return False  # Fail open
+
+    def validate_session_security(self, user_id, jwt_claims, session_timeout=3600):
+        """Unified session security validation.
+
+        Checks:
+        1. Token blocklist (individual token revocation)
+        2. User-wide token revocation
+        3. IP address binding (if present in claims)
+        4. User agent binding (if present in claims)
+        5. Session timeout
+
+        Args:
+            user_id: The user ID from the token
+            jwt_claims: The full JWT claims dictionary
+            session_timeout: Maximum session age in seconds (default: 1 hour)
+
+        Returns:
+            tuple: (is_valid: bool, error_message: str or None)
+        """
+        try:
+            # 1. Check if specific token is blocklisted
+            jti = jwt_claims.get('jti')
+            if jti and self.is_token_blocklisted(jti):
+                self.log_security_event('blocklisted_token_usage', user_id, {'jti': jti})
+                return False, 'Token has been revoked'
+
+            # 2. Check user-wide token revocation
+            iat = jwt_claims.get('iat')
+            if iat and self.is_token_revoked_for_user(user_id, iat):
+                self.log_security_event('revoked_user_token_usage', user_id)
+                return False, 'Token has been revoked due to security action'
+
+            # 3. Check IP address binding (if enabled)
+            token_ip = jwt_claims.get('ip_address')
+            if token_ip:
+                current_ip = request.remote_addr
+                if token_ip != current_ip:
+                    self.log_security_event('ip_address_mismatch', user_id, {
+                        'token_ip': token_ip,
+                        'current_ip': current_ip
+                    })
+                    return False, 'Session security validation failed - IP mismatch'
+
+            # 4. Check user agent binding (if enabled)
+            token_ua_hash = jwt_claims.get('user_agent_hash')
+            if token_ua_hash:
+                current_ua_hash = hashlib.sha256(
+                    request.headers.get('User-Agent', '').encode()
+                ).hexdigest()[:16]
+                if token_ua_hash != current_ua_hash:
+                    self.log_security_event('user_agent_mismatch', user_id, {
+                        'token_ua': token_ua_hash,
+                        'current_ua': current_ua_hash
+                    })
+                    return False, 'Session security validation failed - device mismatch'
+
+            # 5. Check session timeout
+            login_time = jwt_claims.get('login_time') or jwt_claims.get('iat')
+            if login_time:
+                current_time = int(time.time())
+                if current_time - int(login_time) > session_timeout:
+                    self.log_security_event('session_timeout', user_id, {
+                        'login_time': login_time,
+                        'timeout': session_timeout
+                    })
+                    return False, 'Session has expired'
+
+            # 6. Check explicit revocation flag in token
+            if jwt_claims.get('is_revoked', False):
+                self.log_security_event('revoked_token_flag', user_id)
+                return False, 'Token has been revoked'
+
+            return True, None
+
+        except Exception as e:
+            self.log_security_event('session_validation_error', user_id, {'error': str(e)})
+            return False, 'Session validation failed'
 
 
 # Global security manager instance
@@ -298,22 +525,6 @@ def input_sanitization_required(f):
     return decorated
 
 
-def SecurityManager.sanitize_input(self, data):
-    """Sanitize input data to prevent injection attacks"""
-    if isinstance(data, dict):
-        return {key: self.sanitize_input(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [self.sanitize_input(item) for item in data]
-    elif isinstance(data, str):
-        # Remove potentially dangerous characters
-        dangerous_chars = ['<', '>', '"', "'", '&', ';', '(', ')', '|', '`']
-        for char in dangerous_chars:
-            data = data.replace(char, '')
-        return data.strip()
-    else:
-        return data
-
-
 def audit_log_required(f):
     """Decorator to log all access to sensitive endpoints"""
     @wraps(f)
@@ -383,30 +594,76 @@ class SecureUser(User, EncryptedFieldMixin):
 # Security middleware
 def init_security_middleware(app):
     """Initialize security middleware for the Flask app"""
-    
+
+    # Store original get_json function reference
+    from flask import Request
+    original_get_json = Request.get_json
+
+    def sanitized_get_json(self, force=False, silent=False, cache=True):
+        """Wrapper around Flask's get_json that automatically sanitizes input"""
+        # Check if we already have sanitized data cached
+        if hasattr(self, '_sanitized_json') and self._sanitized_json is not None:
+            return self._sanitized_json
+
+        # Get the original JSON data
+        data = original_get_json(self, force=force, silent=silent, cache=cache)
+
+        if data is not None:
+            # Sanitize the data
+            sanitized_data = security_manager.sanitize_input(data)
+
+            # Log sanitization if data was modified (for security auditing)
+            if sanitized_data != data:
+                security_manager.log_security_event(
+                    'input_sanitized',
+                    details={
+                        'endpoint': request.endpoint if request else 'unknown',
+                        'method': request.method if request else 'unknown',
+                        'path': request.path if request else 'unknown'
+                    }
+                )
+
+            # Cache the sanitized data
+            self._sanitized_json = sanitized_data
+            return sanitized_data
+
+        return data
+
+    # Replace Flask's get_json with our sanitized version
+    Request.get_json = sanitized_get_json
+
     @app.before_request
-    def security_headers():
+    def init_sanitization_cache():
+        """Initialize sanitization cache for each request"""
+        # Reset sanitized JSON cache for each new request
+        if hasattr(request, '_sanitized_json'):
+            delattr(request, '_sanitized_json')
+
+    @app.after_request
+    def add_security_headers(response):
         """Add security headers to all responses"""
-        from flask import make_response
-        
-        @app.after_request
-        def after_request(response):
-            response.headers['X-Content-Type-Options'] = 'nosniff'
-            response.headers['X-Frame-Options'] = 'DENY'
-            response.headers['X-XSS-Protection'] = '1; mode=block'
-            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-            response.headers['Content-Security-Policy'] = "default-src 'self'"
-            return response
-    
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        response.headers['Content-Security-Policy'] = "default-src 'self'"
+        return response
+
     @app.before_request
     def check_account_lockout():
         """Check if user account is locked due to failed attempts"""
         if request.endpoint == 'auth.login':
-            email = request.get_json().get('email') if request.is_json else None
-            if email and security_manager.is_account_locked(email):
-                security_manager.log_security_event('locked_account_access_attempt', details={'email': email})
-                return jsonify({'message': 'Account temporarily locked due to multiple failed attempts'}), 423
-    
+            try:
+                # Use silent=True to avoid errors on malformed JSON
+                data = request.get_json(silent=True)
+                email = data.get('email') if data else None
+                if email and security_manager.is_account_locked(email):
+                    security_manager.log_security_event('locked_account_access_attempt', details={'email': email})
+                    return jsonify({'message': 'Account temporarily locked due to multiple failed attempts'}), 423
+            except Exception:
+                # If JSON parsing fails, let the route handler deal with it
+                pass
+
     @app.errorhandler(429)
     def handle_rate_limit(e):
         """Handle rate limit exceeded errors"""
