@@ -52,10 +52,10 @@ Open your web browser and navigate to:
 
 ## API Endpoints
 
-The frontend server proxies all API requests to the backend server running on port 5000.
+The frontend server proxies all API requests to the backend server running on port 5001.
 
-- `/api/*`: All API endpoints are forwarded to `http://localhost:5000/api/*`
-- `/auth/*`: All auth endpoints are forwarded to `http://localhost:5000/auth/*`
+- `/api/*`: All API endpoints are forwarded to `http://localhost:5001/api/*`
+- `/auth/*`: All auth endpoints are forwarded to `http://localhost:5001/auth/*`
 
 ## Features
 

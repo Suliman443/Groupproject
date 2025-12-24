@@ -54,8 +54,14 @@ class SecurityManager:
             with open(key_file, 'rb') as f:
                 self.encryption_key = f.read()
         else:
-            # Generate new key
-            password = self.app.config.get('SECRET_KEY', 'default-secret').encode()
+            # Generate new key - SECRET_KEY must be set
+            secret_key = self.app.config.get('SECRET_KEY')
+            if not secret_key:
+                raise ValueError(
+                    "SECRET_KEY must be set in application configuration. "
+                    "Set it via environment variable or config file."
+                )
+            password = secret_key.encode()
             salt = os.urandom(16)
             kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
@@ -569,23 +575,19 @@ class EncryptedFieldMixin:
 # Enhanced User model with encryption
 class SecureUser(User, EncryptedFieldMixin):
     """Enhanced User model with field encryption"""
-    
-    # Additional encrypted fields
-    email_encrypted = db.Column(db.Text)
-    fullname_encrypted = db.Column(db.Text)
-    
+
     def set_email(self, email):
         """Set encrypted email"""
         self.encrypt_field('email', email)
-    
+
     def get_email(self):
         """Get decrypted email"""
         return self.decrypt_field('email')
-    
+
     def set_fullname(self, fullname):
         """Set encrypted fullname"""
         self.encrypt_field('fullname', fullname)
-    
+
     def get_fullname(self):
         """Get decrypted fullname"""
         return self.decrypt_field('fullname')

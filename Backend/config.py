@@ -10,8 +10,10 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Enhanced Security Configuration
-    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_urlsafe(32)
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or secrets.token_urlsafe(32)
+    # SECRET_KEY and JWT_SECRET_KEY should be set via environment variables
+    # Base class: get from environment (no auto-generation)
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
     
     # JWT Configuration with Enhanced Security
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=30)  # Shorter access token
@@ -103,6 +105,34 @@ class DevelopmentConfig(Config):
     
     # Development-specific settings
     SQLALCHEMY_ECHO = True
+    
+    @staticmethod
+    def init_app(app):
+        """Initialize development app with auto-generated secrets if needed"""
+        Config.init_app(app)
+        
+        # In development, allow auto-generation with warning if not set
+        if not os.environ.get('SECRET_KEY'):
+            import warnings
+            warnings.warn(
+                "SECRET_KEY not set. Generating random key for this session only. "
+                "Set SECRET_KEY environment variable for production use.",
+                UserWarning
+            )
+            app.config['SECRET_KEY'] = secrets.token_urlsafe(32)
+        else:
+            app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+        
+        if not os.environ.get('JWT_SECRET_KEY'):
+            import warnings
+            warnings.warn(
+                "JWT_SECRET_KEY not set. Generating random key for this session only. "
+                "Set JWT_SECRET_KEY environment variable for production use.",
+                UserWarning
+            )
+            app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(32)
+        else:
+            app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 
 
 class ProductionConfig(Config):
@@ -115,9 +145,14 @@ class ProductionConfig(Config):
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=1)
     SESSION_TIMEOUT = 1800  # 30 minutes
     
-    # Production database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'postgresql://user:password@localhost/event_management'
+    # Production secrets - MUST be set via environment variables (no defaults)
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+    
+    # Production database - MUST be set via DATABASE_URL environment variable
+    # Format: postgresql://username:password@host:port/database
+    # No default value - must be provided via environment variable
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
     # Production security
     SESSION_COOKIE_SECURE = True
@@ -127,6 +162,30 @@ class ProductionConfig(Config):
     # Enhanced monitoring
     SECURITY_MONITORING_ENABLED = True
     AUDIT_LOG_ENABLED = True
+    
+    @staticmethod
+    def init_app(app):
+        """Initialize production app with security validations"""
+        Config.init_app(app)
+        
+        # Validate required environment variables
+        if not os.environ.get('DATABASE_URL'):
+            raise ValueError(
+                "DATABASE_URL environment variable must be set for production. "
+                "Format: postgresql://username:password@host:port/database"
+            )
+        
+        if not os.environ.get('SECRET_KEY'):
+            raise ValueError(
+                "SECRET_KEY environment variable must be set for production. "
+                "Generate a secure random key and set it as an environment variable."
+            )
+        
+        if not os.environ.get('JWT_SECRET_KEY'):
+            raise ValueError(
+                "JWT_SECRET_KEY environment variable must be set for production. "
+                "Generate a secure random key and set it as an environment variable."
+            )
 
 
 class TestingConfig(Config):

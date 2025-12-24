@@ -7,8 +7,8 @@ app = Flask(__name__,
             static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), "Frontend"),
             static_url_path='')
 
-# Backend API URL
-BACKEND_API_URL = 'http://localhost:5000'
+# Backend API URL - can be overridden with BACKEND_API_URL environment variable
+BACKEND_API_URL = os.environ.get('BACKEND_API_URL', 'http://localhost:5001')
 
 # Serve HTML pages
 @app.route('/')
@@ -56,14 +56,19 @@ def js_files(filename):
             with open(os.path.join('Frontend/js', filename), 'r', encoding='utf-8') as f:
                 content = f.read()
             # Replace the absolute URL with relative URL for Flask server
+            backend_port = BACKEND_API_URL.split(':')[-1] if ':' in BACKEND_API_URL else '5001'
             content = content.replace(
                 "const API_BASE_URL = 'http://localhost:5000/api';",
+                "const API_BASE_URL = '/api';"
+            )
+            content = content.replace(
+                "const API_BASE_URL = 'http://localhost:5001/api';",
                 "const API_BASE_URL = '/api';"
             )
             # Update auth refresh endpoint to use absolute path (bypass proxy double /api issue)
             content = content.replace(
                 "`${API_BASE_URL}/auth/refresh`",
-                "`http://localhost:5000/api/auth/refresh`"
+                f"`{BACKEND_API_URL}/api/auth/refresh`"
             )
             
             response = Response(content, mimetype='application/javascript')
@@ -176,7 +181,7 @@ def log_request_info():
 if __name__ == '__main__':
     print("🚀 Starting Tourism App Frontend Server...")
     print("📍 Frontend: http://localhost:4322")
-    print("🔗 Backend API: http://localhost:5000")
+    print(f"🔗 Backend API: {BACKEND_API_URL}")
     print("📊 Health Check: http://localhost:4322/health")
     print("\n📝 Available Routes:")
     print("   / - Main page")

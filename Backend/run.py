@@ -11,8 +11,8 @@ import os
 app = create_app()
 
 if __name__ == '__main__':
-    # Get port from environment variable or default to 5000
-    port = int(os.environ.get('PORT', 5000))
+    # Get port from environment variable or default to 5001
+    port = int(os.environ.get('PORT', 5001))
     
     # Get debug mode from environment variable or default to True for development
     debug_mode = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
